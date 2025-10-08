@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SplitTrip - Gerenciador de Despesas</title>
+  <title>SplitTrip - Gerenciador de Despesas com Split e Moedas</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -27,7 +27,9 @@
     }
 
     /* Inicial: Login visível */
-    input {
+    input,
+    select,
+    button {
       width: 100%;
       padding: 10px;
       margin: 10px 0;
@@ -37,18 +39,28 @@
     }
 
     button {
-      width: 100%;
-      padding: 10px;
-      margin: 10px 0;
       background: #007bff;
       color: white;
       border: none;
-      border-radius: 4px;
       cursor: pointer;
     }
 
     button:hover {
       background: #0056b3;
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+    }
+
+    .btn-secondary:hover {
+      background: #545b62;
+    }
+
+    .btn-small {
+      width: auto;
+      padding: 5px 10px;
+      margin: 0 5px;
     }
 
     ul {
@@ -69,22 +81,44 @@
       color: #333;
     }
 
-    .btn-secondary {
-      background: #6c757d;
-    }
-
-    .btn-secondary:hover {
-      background: #545b62;
-    }
-
     .error {
       color: red;
+    }
+
+    .success {
+      color: green;
+    }
+
+    .split-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+    }
+
+    .split-table th,
+    .split-table td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+
+    .split-table th {
+      background: #007bff;
+      color: white;
+    }
+
+    .split-table tr:nth-child(even) {
+      background: #f8f9fa;
+    }
+
+    #split-result {
+      margin-top: 20px;
     }
   </style>
 </head>
 
 <body>
-  <!-- Página de Login (visível por default) -->
+  <!-- Página de Login -->
   <div id="login-page" class="page">
     <h2>Login no SplitTrip</h2>
     <input id="login-email" type="email" placeholder="Digite seu email" />
@@ -93,7 +127,7 @@
     <p>Não tem conta? <button class="btn-secondary" onclick="showRegisterPage()">Criar Conta</button></p>
   </div>
 
-  <!-- Página de Cadastro (Register) -->
+  <!-- Página de Cadastro -->
   <div id="register-page" class="page">
     <h2>Cadastro no SplitTrip</h2>
     <input id="register-email" type="email" placeholder="Digite seu email" />
@@ -102,18 +136,38 @@
     <p>Já tem conta? <button class="btn-secondary" onclick="showLoginPage()">Fazer Login</button></p>
   </div>
 
-  <!-- Página de Despesas (aparece após login/register) -->
+  <!-- Página de Despesas e Viagens -->
   <div id="despesas-page" class="page">
-    <h2>Minhas Despesas</h2>
-    <p>Bem-vindo! Aqui você gerencia suas despesas e viagens.</p>
+    <h2>Minhas Despesas e Viagens</h2>
+    <p>Bem-vindo! Gerencie despesas, adicione viagens e calcule splits.</p>
+
+    <h3>Despesas</h3>
     <ul id="despesas-lista">
-      <li>Carregando despesas...</li> <!-- JS preenche aqui -->
+      <li>Carregando despesas...</li>
     </ul>
+
     <h3>Adicionar Nova Despesa</h3>
     <input id="despesa-name" placeholder="Nome da despesa (ex: Gasolina)" />
-    <input id="despesa-amount" type="number" step="0.01" placeholder="Valor em R$ (ex: 25.75)" />
+    <input id="despesa-amount" type="number" step="0.01" placeholder="Valor (ex: 25.75)" />
+    <select id="despesa-currency">
+      <option value="BRL">BRL (R$)</option>
+      <option value="USD">USD ($)</option>
+      <option value="EUR">EUR (€)</option>
+    </select>
     <input id="despesa-trip" type="number" placeholder="ID da Viagem (opcional, deixe vazio para pessoal)" />
     <button onclick="handleAddDespesa()">Adicionar Despesa</button>
+
+    <h3>Criar Nova Viagem</h3>
+    <input id="trip-name" placeholder="Nome da viagem (ex: Viagem para EUA)" />
+    <button onclick="handleCreateTrip()">Criar Viagem</button>
+
+    <h3>Minhas Viagens</h3>
+    <ul id="trips-lista">
+      <li>Carregando viagens...</li>
+    </ul>
+
+    <div id="split-result"></div>
+
     <button class="btn-secondary" onclick="logout()">Sair</button>
   </div>
 
@@ -133,17 +187,15 @@
 
     // Função para mostrar/esconder páginas (evita branco)
     function showPage(pageId) {
-      // Esconde todas as páginas
       document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
-      // Mostra a página específica
       const page = document.getElementById(pageId);
       if (page) {
         page.style.display = 'block';
         console.log(`✅ Página "${pageId}" carregada!`);
       } else {
-        console.error(`❌ Erro: Div "${pageId}" não encontrada no HTML!`);
-        alert(`Erro: Página "${pageId}" não existe. Verifique o código HTML.`);
-        showLoginPage();  // Fallback para login
+        console.error(`❌ Erro: Div "${pageId}" não encontrada!`);
+        alert(`Erro: Página "${pageId}" não existe.`);
+        showLoginPage();
       }
     }
 
@@ -152,7 +204,8 @@
     function showRegisterPage() { showPage('register-page'); }
     function showDespesasPage() {
       showPage('despesas-page');
-      loadDespesas();  // Carrega lista automaticamente
+      loadDespesas();
+      loadTrips();
     }
 
     // Cadastro (Register)
@@ -170,8 +223,8 @@
         });
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        alert('✅ Conta criada com sucesso! Redirecionando para despesas...');
-        showDespesasPage();  // Vai para página de despesas (não branco)
+        alert('✅ Conta criada com sucesso! Redirecionando...');
+        showDespesasPage();
       } catch (err) {
         alert(`❌ Erro no cadastro: ${err.message}`);
         console.error('Register erro:', err);
@@ -194,44 +247,66 @@
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         alert('✅ Login realizado com sucesso! Redirecionando...');
-        showDespesasPage();  // Vai para despesas (não branco)
+        showDespesasPage();
       } catch (err) {
         alert(`❌ Erro no login: ${err.message}`);
         console.error('Login erro:', err);
       }
     }
 
-    // Carrega lista de despesas
-    async function loadDespesas() {
-      const listaEl = document.getElementById('despesas-lista');
-      if (!listaEl) {
-        console.error('❌ #despesas-lista não encontrada!');
+    // Criar Nova Viagem
+    async function handleCreateTrip() {
+      const name = document.getElementById('trip-name').value.trim();
+      if (!name || name.length < 3) {
+        alert('Nome da viagem obrigatório (mín. 3 caracteres)');
         return;
       }
+      try {
+        const data = await apiFetch('/api/trips', {
+          method: 'POST',
+          body: JSON.stringify({ name }),
+        });
+        alert(`✅ Viagem "${name}" criada! ID: ${data.id}`);
+        document.getElementById('trip-name').value = '';
+        loadTrips();  // Atualiza lista
+      } catch (err) {
+        alert(`❌ Erro ao criar viagem: ${err.message}`);
+      }
+    }
+
+    // Carrega lista de despesas (atualizado com moedas)
+    async function loadDespesas() {
+      const listaEl = document.getElementById('despesas-lista');
+      if (!listaEl) return;
       listaEl.innerHTML = '<li>Carregando...</li>';
       try {
         const { expenses } = await apiFetch('/api/expenses');
         if (expenses.length > 0) {
-          listaEl.innerHTML = expenses.map(exp => `
-            <li>
-              <strong>${exp.name}</strong> - R$ ${exp.amount.toFixed(2)}<br>
-              ${exp.trip_id ? `Viagem ID: ${exp.trip_id}` : 'Pessoal'}<br>
-              Data: ${new Date(exp.created_at).toLocaleDateString('pt-BR')}
-            </li>
-          `).join('');
+          listaEl.innerHTML = expenses.map(exp => {
+            const symbol = exp.currency === 'BRL' ? 'R$' : exp.currency + '$';
+            const converted = exp.amount_brl !== exp.amount ? ` (R$ ${exp.amount_brl.toFixed(2)})` : '';
+            return `
+              <li>
+                <strong>${exp.name}</strong> - ${symbol} ${exp.amount.toFixed(2)}${converted}<br>
+                ${exp.trip_id ? `Viagem ID: ${exp.trip_id}` : 'Pessoal'}<br>
+                Data: ${new Date(exp.created_at).toLocaleDateString('pt-BR')}
+              </li>
+            `;
+          }).join('');
         } else {
           listaEl.innerHTML = '<li>Nenhuma despesa cadastrada ainda. Adicione a primeira!</li>';
         }
       } catch (err) {
-        listaEl.innerHTML = `<li class="error">Erro ao carregar: ${err.message}. Verifique se está logado.</li>`;
+        listaEl.innerHTML = `<li class="error">Erro ao carregar: ${err.message}</li>`;
         console.error('Load despesas erro:', err);
       }
     }
 
-    // Adicionar despesa
+    // Adicionar despesa (atualizado com currency)
     async function handleAddDespesa() {
       const name = document.getElementById('despesa-name').value.trim();
       const amount = parseFloat(document.getElementById('despesa-amount').value);
+      const currency = document.getElementById('despesa-currency').value;
       const trip_id = document.getElementById('despesa-trip').value ? parseInt(document.getElementById('despesa-trip').value) : null;
       if (!name || isNaN(amount) || amount <= 0) {
         alert('Nome e valor válido (> 0) obrigatórios');
@@ -240,18 +315,100 @@
       try {
         await apiFetch('/api/expenses', {
           method: 'POST',
-          body: JSON.stringify({ name, amount, trip_id }),
+          body: JSON.stringify({ name, amount, currency, trip_id }),
         });
         alert('✅ Despesa adicionada com sucesso!');
         // Limpa form
         document.getElementById('despesa-name').value = '';
         document.getElementById('despesa-amount').value = '';
+        document.getElementById('despesa-currency').value = 'BRL';
         document.getElementById('despesa-trip').value = '';
-        // Atualiza lista
-        loadDespesas();
+        loadDespesas();  // Atualiza lista
       } catch (err) {
         alert(`❌ Erro ao adicionar: ${err.message}`);
         console.error('Add despesa erro:', err);
+      }
+    }
+
+    // Carrega lista de viagens
+    async function loadTrips() {
+      const tripsEl = document.getElementById('trips-lista');
+      if (!tripsEl) return;
+      tripsEl.innerHTML = '<li>Carregando viagens...</li>';
+      try {
+        const { trips } = await apiFetch('/api/trips');
+        if (trips.length > 0) {
+          tripsEl.innerHTML = trips.map(trip => `
+            <li>
+              <strong>${trip.name}</strong> (ID: ${trip.id})<br>
+              <input id="participant-email-${trip.id}" placeholder="Email do participante (ex: amigo@example.com)" />
+              <input id="share-${trip.id}" type="number" step="0.1" min="0.1" placeholder="Share (default 1.0)" value="1.0" />
+              <button class="btn-small" onclick="addParticipant(${trip.id})">Adicionar Participante</button>
+              <button class="btn-small btn-secondary" onclick="loadSplit(${trip.id})">Ver Split</button>
+            </li>
+          `).join('');
+        } else {
+          tripsEl.innerHTML = '<li>Nenhuma viagem cadastrada. Crie uma acima!</li>';
+        }
+      } catch (err) {
+        tripsEl.innerHTML = `<li class="error">Erro ao carregar viagens: ${err.message}</li>`;
+        console.error('Load trips erro:', err);
+      }
+    }
+
+    // Adicionar Participante a uma Viagem
+    async function addParticipant(tripId) {
+      const email = document.getElementById(`participant-email-${tripId}`).value.trim();
+      const share = parseFloat(document.getElementById(`share-${tripId}`).value) || 1.0;
+      if (!email) {
+        alert('Email do participante obrigatório');
+        return;
+      }
+      try {
+        const data = await apiFetch(`/api/trips/${tripId}/participants`, {
+          method: 'POST',
+          body: JSON.stringify({ email, share }),
+        });
+        alert(`✅ Participante "${email}" adicionado à viagem! Share: ${data.share}`);
+        // Limpa input
+        document.getElementById(`participant-email-${tripId}`).value = '';
+        document.getElementById(`share-${tripId}`).value = '1.0';
+        loadSplit(tripId);  // Atualiza split auto
+      } catch (err) {
+        alert(`❌ Erro ao adicionar: ${err.message}`);
+        console.error('Add participant erro:', err);
+      }
+    }
+
+    // Carrega e Mostra Split de uma Viagem
+    async function loadSplit(tripId) {
+      const resultEl = document.getElementById('split-result');
+      resultEl.innerHTML = '<p>Carregando split...</p>';
+      try {
+        const data = await apiFetch(`/api/trips/${tripId}/split`);
+        if (data.participants.length === 0) {
+          resultEl.innerHTML = '<p class="error">Nenhum participante na viagem. Adicione um!</p>';
+          return;
+        }
+        let tableHtml = `
+          <h4>Split da Viagem "${data.trip_name}"</h4>
+          <p><strong>Total em BRL:</strong> R$ ${data.total_brl} | <strong>Participantes:</strong> ${data.total_participants}</p>
+          <table class="split-table">
+            <thead>
+              <tr><th>Email</th><th>Share (%)</th><th>Deve Pagar (R$)</th></tr>
+            </thead>
+            <tbody>
+        `;
+        data.participants.forEach(p => {
+          const sharePercent = (p.share * 100).toFixed(1) + '%';
+          tableHtml += `<tr><td>${p.email}</td><td>${sharePercent}</td><td>R$ ${p.deve_pagar}</td></tr>`;
+        });
+        tableHtml += '</tbody></table>';
+        resultEl.innerHTML = tableHtml;
+        resultEl.classList.add('success');
+      } catch (err) {
+        resultEl.innerHTML = `<p class="error">Erro no split: ${err.message}</p>`;
+        console.error('Load split erro:', err);
       }
     }
 
@@ -267,9 +424,9 @@
     window.addEventListener('load', () => {
       const token = localStorage.getItem('token');
       if (token) {
-        showDespesasPage();  // Se já tem token, vai direto para despesas
+        showDespesasPage();
       } else {
-        showLoginPage();  // Senão, mostra login
+        showLoginPage();
       }
     });
   </script>
