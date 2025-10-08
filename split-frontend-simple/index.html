@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SplitTrip - Gerenciador de Despesas</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+
+    .page {
+      display: none;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    #login-page {
+      display: block;
+    }
+
+    /* Inicial: Login visível */
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      background: #f8f9fa;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      border-left: 4px solid #007bff;
+    }
+
+    h2,
+    h3 {
+      color: #333;
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+    }
+
+    .btn-secondary:hover {
+      background: #545b62;
+    }
+
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Página de Login (visível por default) -->
+  <div id="login-page" class="page">
+    <h2>Login no SplitTrip</h2>
+    <input id="login-email" type="email" placeholder="Digite seu email" />
+    <input id="login-password" type="password" placeholder="Digite sua senha" />
+    <button onclick="handleLogin()">Entrar</button>
+    <p>Não tem conta? <button class="btn-secondary" onclick="showRegisterPage()">Criar Conta</button></p>
+  </div>
+
+  <!-- Página de Cadastro (Register) -->
+  <div id="register-page" class="page">
+    <h2>Cadastro no SplitTrip</h2>
+    <input id="register-email" type="email" placeholder="Digite seu email" />
+    <input id="register-password" type="password" placeholder="Senha (mín. 6 caracteres)" />
+    <button onclick="handleRegister()">Criar Conta</button>
+    <p>Já tem conta? <button class="btn-secondary" onclick="showLoginPage()">Fazer Login</button></p>
+  </div>
+
+  <!-- Página de Despesas (aparece após login/register) -->
+  <div id="despesas-page" class="page">
+    <h2>Minhas Despesas</h2>
+    <p>Bem-vindo! Aqui você gerencia suas despesas e viagens.</p>
+    <ul id="despesas-lista">
+      <li>Carregando despesas...</li> <!-- JS preenche aqui -->
+    </ul>
+    <h3>Adicionar Nova Despesa</h3>
+    <input id="despesa-name" placeholder="Nome da despesa (ex: Gasolina)" />
+    <input id="despesa-amount" type="number" step="0.01" placeholder="Valor em R$ (ex: 25.75)" />
+    <input id="despesa-trip" type="number" placeholder="ID da Viagem (opcional, deixe vazio para pessoal)" />
+    <button onclick="handleAddDespesa()">Adicionar Despesa</button>
+    <button class="btn-secondary" onclick="logout()">Sair</button>
+  </div>
+
+  <script>
+    // Função para chamadas API (com token automático)
+    async function apiFetch(url, options = {}) {
+      const token = localStorage.getItem('token');
+      options.headers = { ...options.headers, 'Content-Type': 'application/json' };
+      if (token) options.headers.Authorization = `Bearer ${token}`;
+      const response = await fetch(`http://localhost:4000${url}`, options);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    }
+
+    // Função para mostrar/esconder páginas (evita branco)
+    function showPage(pageId) {
+      // Esconde todas as páginas
+      document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
+      // Mostra a página específica
+      const page = document.getElementById(pageId);
+      if (page) {
+        page.style.display = 'block';
+        console.log(`✅ Página "${pageId}" carregada!`);
+      } else {
+        console.error(`❌ Erro: Div "${pageId}" não encontrada no HTML!`);
+        alert(`Erro: Página "${pageId}" não existe. Verifique o código HTML.`);
+        showLoginPage();  // Fallback para login
+      }
+    }
+
+    // Funções de navegação
+    function showLoginPage() { showPage('login-page'); }
+    function showRegisterPage() { showPage('register-page'); }
+    function showDespesasPage() {
+      showPage('despesas-page');
+      loadDespesas();  // Carrega lista automaticamente
+    }
+
+    // Cadastro (Register)
+    async function handleRegister() {
+      const email = document.getElementById('register-email').value.trim();
+      const password = document.getElementById('register-password').value;
+      if (!email || !password || password.length < 6) {
+        alert('Email e senha obrigatórios (senha com pelo menos 6 caracteres)');
+        return;
+      }
+      try {
+        const data = await apiFetch('/api/users/register', {
+          method: 'POST',
+          body: JSON.stringify({ email, password }),
+        });
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        alert('✅ Conta criada com sucesso! Redirecionando para despesas...');
+        showDespesasPage();  // Vai para página de despesas (não branco)
+      } catch (err) {
+        alert(`❌ Erro no cadastro: ${err.message}`);
+        console.error('Register erro:', err);
+      }
+    }
+
+    // Login
+    async function handleLogin() {
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      if (!email || !password) {
+        alert('Email e senha obrigatórios');
+        return;
+      }
+      try {
+        const data = await apiFetch('/api/users/login', {
+          method: 'POST',
+          body: JSON.stringify({ email, password }),
+        });
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        alert('✅ Login realizado com sucesso! Redirecionando...');
+        showDespesasPage();  // Vai para despesas (não branco)
+      } catch (err) {
+        alert(`❌ Erro no login: ${err.message}`);
+        console.error('Login erro:', err);
+      }
+    }
+
+    // Carrega lista de despesas
+    async function loadDespesas() {
+      const listaEl = document.getElementById('despesas-lista');
+      if (!listaEl) {
+        console.error('❌ #despesas-lista não encontrada!');
+        return;
+      }
+      listaEl.innerHTML = '<li>Carregando...</li>';
+      try {
+        const { expenses } = await apiFetch('/api/expenses');
+        if (expenses.length > 0) {
+          listaEl.innerHTML = expenses.map(exp => `
+            <li>
+              <strong>${exp.name}</strong> - R$ ${exp.amount.toFixed(2)}<br>
+              ${exp.trip_id ? `Viagem ID: ${exp.trip_id}` : 'Pessoal'}<br>
+              Data: ${new Date(exp.created_at).toLocaleDateString('pt-BR')}
+            </li>
+          `).join('');
+        } else {
+          listaEl.innerHTML = '<li>Nenhuma despesa cadastrada ainda. Adicione a primeira!</li>';
+        }
+      } catch (err) {
+        listaEl.innerHTML = `<li class="error">Erro ao carregar: ${err.message}. Verifique se está logado.</li>`;
+        console.error('Load despesas erro:', err);
+      }
+    }
+
+    // Adicionar despesa
+    async function handleAddDespesa() {
+      const name = document.getElementById('despesa-name').value.trim();
+      const amount = parseFloat(document.getElementById('despesa-amount').value);
+      const trip_id = document.getElementById('despesa-trip').value ? parseInt(document.getElementById('despesa-trip').value) : null;
+      if (!name || isNaN(amount) || amount <= 0) {
+        alert('Nome e valor válido (> 0) obrigatórios');
+        return;
+      }
+      try {
+        await apiFetch('/api/expenses', {
+          method: 'POST',
+          body: JSON.stringify({ name, amount, trip_id }),
+        });
+        alert('✅ Despesa adicionada com sucesso!');
+        // Limpa form
+        document.getElementById('despesa-name').value = '';
+        document.getElementById('despesa-amount').value = '';
+        document.getElementById('despesa-trip').value = '';
+        // Atualiza lista
+        loadDespesas();
+      } catch (err) {
+        alert(`❌ Erro ao adicionar: ${err.message}`);
+        console.error('Add despesa erro:', err);
+      }
+    }
+
+    // Logout
+    function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      alert('Logout realizado! Volte sempre.');
+      showLoginPage();
+    }
+
+    // Inicialização da página
+    window.addEventListener('load', () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        showDespesasPage();  // Se já tem token, vai direto para despesas
+      } else {
+        showLoginPage();  // Senão, mostra login
+      }
+    });
+  </script>
+</body>
+
+</html>
