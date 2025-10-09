@@ -4,63 +4,147 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SplitTrip - Gerenciador de Despesas com Split e Moedas</title>
+  <meta name="description" content="App para split de despesas em viagens com conversão de moedas - SplitViagem">
+  <title>SplitViagem - Gerencie Despesas e Splits de Viagens</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 600px;
-      margin: 20px auto;
-      padding: 20px;
-      background: #f5f5f5;
-    }
-
-    .page {
-      display: none;
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
-
-    #login-page {
-      display: block;
-    }
-
-    /* Inicial: Login visível */
-    input,
-    select,
-    button {
-      width: 100%;
-      padding: 10px;
-      margin: 10px 0;
-      border: 1px solid #ddd;
-      border-radius: 4px;
+    * {
       box-sizing: border-box;
     }
 
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      color: #333;
+      line-height: 1.6;
+      transition: all 0.3s ease;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+      color: white;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-weight: 700;
+      font-size: 2.2em;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(10px);
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    h1,
+    h2,
+    h3 {
+      color: #007bff;
+      font-weight: 500;
+      margin-bottom: 15px;
+    }
+
+    h2 {
+      font-size: 1.8em;
+      border-bottom: 2px solid #e9ecef;
+      padding-bottom: 10px;
+    }
+
+    .card {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      font-weight: 500;
+      color: #555;
+      font-size: 0.95em;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      background: white;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+
+    input::placeholder {
+      color: #adb5bd;
+    }
+
     button {
-      background: #007bff;
+      background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
       color: white;
       border: none;
+      padding: 12px 20px;
+      border-radius: 8px;
       cursor: pointer;
+      font-size: 16px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
+      margin: 10px 0;
     }
 
-    button:hover {
-      background: #0056b3;
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(0, 123, 255, 0.3);
+      background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
     }
 
-    .btn-secondary {
+    button:disabled {
       background: #6c757d;
-    }
-
-    .btn-secondary:hover {
-      background: #545b62;
-    }
-
-    .btn-small {
-      width: auto;
-      padding: 5px 10px;
-      margin: 0 5px;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
     }
 
     ul {
@@ -69,366 +153,567 @@
     }
 
     li {
-      background: #f8f9fa;
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 4px;
+      background: white;
+      margin: 15px 0;
+      padding: 15px;
+      border-radius: 10px;
       border-left: 4px solid #007bff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+      position: relative;
     }
 
-    h2,
-    h3 {
-      color: #333;
+    li:hover {
+      transform: translateX(5px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    li::before {
+      content: "💰";
+      margin-right: 10px;
+      font-size: 1.2em;
     }
 
     .error {
-      color: red;
+      color: #dc3545;
+      border-left-color: #dc3545;
+      background: #f8d7da;
     }
 
     .success {
-      color: green;
+      color: #28a745;
+      border-left-color: #28a745;
+      background: #d4edda;
+    }
+
+    .page {
+      display: none;
+      animation: fadeIn 0.5s ease;
+    }
+
+    .active {
+      display: block;
     }
 
     .split-table {
       width: 100%;
       border-collapse: collapse;
-      margin: 10px 0;
+      margin: 20px 0;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     .split-table th,
     .split-table td {
-      border: 1px solid #ddd;
-      padding: 8px;
+      padding: 12px 15px;
       text-align: left;
+      border-bottom: 1px solid #e9ecef;
     }
 
     .split-table th {
-      background: #007bff;
+      background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
       color: white;
+      font-weight: 500;
     }
 
     .split-table tr:nth-child(even) {
       background: #f8f9fa;
     }
 
-    #split-result {
-      margin-top: 20px;
+    .split-table tr:hover {
+      background: #e3f2fd;
+      transform: scale(1.01);
+      transition: all 0.2s ease;
+    }
+
+    .badge {
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 0.85em;
+      font-weight: 500;
+      margin: 5px;
+    }
+
+    .badge-error {
+      background: #f8d7da;
+      color: #dc3545;
+    }
+
+    .badge-success {
+      background: #d4edda;
+      color: #28a745;
+    }
+
+    .loading {
+      text-align: center;
+      color: #007bff;
+      font-style: italic;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      padding: 20px;
+      color: #6c757d;
+      font-size: 0.9em;
+      border-top: 1px solid #e9ecef;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px 15px;
+        margin: 10px;
+        border-radius: 8px;
+      }
+
+      .header h1 {
+        font-size: 1.8em;
+      }
+
+      input,
+      select,
+      button {
+        font-size: 16px;
+        /* Previne zoom mobile */
+        padding: 14px;
+      }
+
+      .split-table {
+        font-size: 14px;
+      }
+
+      .split-table th,
+      .split-table td {
+        padding: 10px 8px;
+      }
+
+      li {
+        padding: 12px;
+      }
     }
   </style>
 </head>
 
 <body>
-  <!-- Página de Login -->
-  <div id="login-page" class="page">
-    <h2>Login no SplitTrip</h2>
-    <input id="login-email" type="email" placeholder="Digite seu email" />
-    <input id="login-password" type="password" placeholder="Digite sua senha" />
-    <button onclick="handleLogin()">Entrar</button>
-    <p>Não tem conta? <button class="btn-secondary" onclick="showRegisterPage()">Criar Conta</button></p>
+  <div class="header">
+    <h1>🚀 SplitViagem</h1>
+    <p>Gerencie despesas e splits de viagens de forma simples e inteligente</p>
   </div>
 
-  <!-- Página de Cadastro -->
-  <div id="register-page" class="page">
-    <h2>Cadastro no SplitTrip</h2>
-    <input id="register-email" type="email" placeholder="Digite seu email" />
-    <input id="register-password" type="password" placeholder="Senha (mín. 6 caracteres)" />
-    <button onclick="handleRegister()">Criar Conta</button>
-    <p>Já tem conta? <button class="btn-secondary" onclick="showLoginPage()">Fazer Login</button></p>
+  <div class="container">
+    <!-- Página de Login -->
+    <div id="login-page" class="page active">
+      <div class="card">
+        <h1>Login</h1>
+        <p>Entre para gerenciar suas viagens.</p>
+        <form onsubmit="event.preventDefault(); handleLogin();">
+          <label for="login-email">Email</label>
+          <input id="login-email" type="email" placeholder="Digite seu email" required />
+          <label for="login-password">Senha</label>
+          <input id="login-password" type="password" placeholder="Digite sua senha" required />
+          <button type="submit">Entrar 👤</button>
+        </form>
+        <p style="text-align: center; margin-top: 20px; color: #6c757d;">
+          Não tem conta? <a href="#" onclick="showPage('register-page')" style="color: #007bff; text-decoration: none; font-weight: 500;">Criar Conta</a>
+        </p>
+      </div>
+    </div>
+
+    <!-- Página de Register -->
+    <div id="register-page" class="page">
+      <div class="card">
+        <h1>Criar Conta</h1>
+        <p>Crie sua conta gratuita no SplitViagem.</p>
+        <form onsubmit="event.preventDefault(); handleRegister();">
+          <label for="register-email">Email</label>
+          <input id="register-email" type="email" placeholder="Digite seu email" required />
+          <label for="register-password">Senha (mín. 6 caracteres)</label>
+          <input id="register-password" type="password" placeholder="Crie uma senha segura" required />
+          <button type="submit">Criar Conta ➕</button>
+        </form>
+        <p style="text-align: center; margin-top: 20px; color: #6c757d;">
+          Já tem conta? <a href="#" onclick="showPage('login-page')" style="color: #007bff; text-decoration: none; font-weight: 500;">Fazer Login</a>
+        </p>
+      </div>
+    </div>
+
+    <!-- Página de Despesas e Viagens - ORDEM REORDENADA -->
+    <div id="despesas-page" class="page">
+      <h2>Bem-vindo de volta! 💼</h2>
+      <p>Crie viagens, adicione despesas e calcule splits automaticamente.</p>
+
+      <!-- 1. CRIAR NOVA VIAGEM (PRIMEIRO) -->
+      <div class="card">
+        <h3>Criar Nova Viagem 🗺️</h3>
+        <form onsubmit="event.preventDefault(); handleAddTrip();">
+          <label for="trip-name">Nome da Viagem</label>
+          <input id="trip-name" placeholder="Ex: Viagem para Itacaré" required />
+          <button type="submit">Criar Viagem ➕</button>
+        </form>
+      </div>
+
+      <!-- 2. MINHAS VIAGENS (SEGUNDO) -->
+      <div class="card">
+        <h3>Minhas Viagens 👥</h3>
+        <ul id="viagens-lista">
+          <li class="loading">Carregando viagens...</li>
+        </ul>
+      </div>
+
+      <!-- 3. DESPESAS DE VIAGENS (TERCEIRO) -->
+      <div class="card">
+        <h3>Despesas de Viagens 💰</h3>
+        <ul id="despesas-viagens-lista">
+          <li class="loading">Carregando despesas...</li>
+        </ul>
+      </div>
+
+      <!-- 4. ADICIONAR NOVA DESPESA (ÚLTIMO) -->
+      <div class="card">
+        <h3>Adicionar Nova Despesa 📈 (Selecione uma Viagem Primeiro)</h3>
+        <form onsubmit="event.preventDefault(); handleAddDespesa();">
+          <label for="despesa-name">Nome da Despesa</label>
+          <input id="despesa-name" placeholder="Ex: Gasolina" required />
+          <label for="despesa-amount">Valor</label>
+          <input id="despesa-amount" type="number" step="0.01" placeholder="Ex: 25.75" required />
+          <label for="despesa-currency">Moeda</label>
+          <select id="despesa-currency">
+            <option value="BRL">BRL (R$)</option>
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+          </select>
+          <label for="despesa-trip">Viagem</label>
+          <select id="despesa-trip">
+            <option value="" disabled>Selecione uma viagem (crie se necessário)</option>
+          </select>
+          <button id="add-despesa-btn" type="submit" disabled>Adicionar Despesa ➕</button>
+        </form>
+      </div>
+
+      <div id="split-result" class="card"></div>
+
+      <button onclick="handleLogout()" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); width: 100%;">Sair 🚪</button>
+    </div>
   </div>
 
-  <!-- Página de Despesas e Viagens -->
-  <div id="despesas-page" class="page">
-    <h2>Minhas Despesas e Viagens</h2>
-    <p>Bem-vindo! Gerencie despesas, adicione viagens e calcule splits.</p>
-
-    <h3>Despesas</h3>
-    <ul id="despesas-lista">
-      <li>Carregando despesas...</li>
-    </ul>
-
-    <h3>Adicionar Nova Despesa</h3>
-    <input id="despesa-name" placeholder="Nome da despesa (ex: Gasolina)" />
-    <input id="despesa-amount" type="number" step="0.01" placeholder="Valor (ex: 25.75)" />
-    <select id="despesa-currency">
-      <option value="BRL">BRL (R$)</option>
-      <option value="USD">USD ($)</option>
-      <option value="EUR">EUR (€)</option>
-    </select>
-    <input id="despesa-trip" type="number" placeholder="ID da Viagem (opcional, deixe vazio para pessoal)" />
-    <button onclick="handleAddDespesa()">Adicionar Despesa</button>
-
-    <h3>Criar Nova Viagem</h3>
-    <input id="trip-name" placeholder="Nome da viagem (ex: Viagem para EUA)" />
-    <button onclick="handleCreateTrip()">Criar Viagem</button>
-
-    <h3>Minhas Viagens</h3>
-    <ul id="trips-lista">
-      <li>Carregando viagens...</li>
-    </ul>
-
-    <div id="split-result"></div>
-
-    <button class="btn-secondary" onclick="logout()">Sair</button>
+  <div class="footer">
+    <p>&copy; 2024 SplitViagem. Desenvolvido com ❤️ para gerenciar suas viagens.</p>
   </div>
 
   <script>
-    // Função para chamadas API (com token automático)
-    async function apiFetch(url, options = {}) {
-      const token = localStorage.getItem('token');
-      options.headers = { ...options.headers, 'Content-Type': 'application/json' };
-      if (token) options.headers.Authorization = `Bearer ${token}`;
-      const response = await fetch(`http://localhost:4000${url}`, options);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
-      }
-      return response.json();
-    }
+    // Configurações
+    const API_BASE = 'http://localhost:4000/api';
+    let token = localStorage.getItem('token');
+    let user = JSON.parse(localStorage.getItem('user') || 'null');
 
-    // Função para mostrar/esconder páginas (evita branco)
-    function showPage(pageId) {
-      document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
-      const page = document.getElementById(pageId);
-      if (page) {
-        page.style.display = 'block';
-        console.log(`✅ Página "${pageId}" carregada!`);
-      } else {
-        console.error(`❌ Erro: Div "${pageId}" não encontrada!`);
-        alert(`Erro: Página "${pageId}" não existe.`);
-        showLoginPage();
-      }
-    }
-
-    // Funções de navegação
-    function showLoginPage() { showPage('login-page'); }
-    function showRegisterPage() { showPage('register-page'); }
-    function showDespesasPage() {
+    // Inicialização
+    if (token && user) {
       showPage('despesas-page');
-      loadDespesas();
-      loadTrips();
     }
 
-    // Cadastro (Register)
-    async function handleRegister() {
-      const email = document.getElementById('register-email').value.trim();
-      const password = document.getElementById('register-password').value;
-      if (!email || !password || password.length < 6) {
-        alert('Email e senha obrigatórios (senha com pelo menos 6 caracteres)');
+    // Mostrar página
+    function showPage(pageId) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(pageId).classList.add('active');
+      if (pageId === 'despesas-page' && token) {
+        loadTrips();  // Carrega viagens primeiro (para select)
+        loadDespesas();  // Depois despesas
+      }
+    }
+
+    // Fetch com token
+    async function apiFetch(endpoint, options = {}) {
+      const headers = { 'Content-Type': 'application/json', ...options.headers };
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const response = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers
+      });
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        token = null;
+        user = null;
+        showPage('login-page');
+        alert('Sessão expirada. Faça login novamente no SplitViagem.');
         return;
       }
-      try {
-        const data = await apiFetch('/api/users/register', {
-          method: 'POST',
-          body: JSON.stringify({ email, password }),
-        });
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        alert('✅ Conta criada com sucesso! Redirecionando...');
-        showDespesasPage();
-      } catch (err) {
-        alert(`❌ Erro no cadastro: ${err.message}`);
-        console.error('Register erro:', err);
-      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      return response.json();
     }
 
     // Login
     async function handleLogin() {
-      const email = document.getElementById('login-email').value.trim();
+      const email = document.getElementById('login-email').value;
       const password = document.getElementById('login-password').value;
-      if (!email || !password) {
-        alert('Email e senha obrigatórios');
-        return;
-      }
+      if (!email || !password) return alert('Preencha email e senha.');
       try {
-        const data = await apiFetch('/api/users/login', {
+        const { token: newToken, user: newUser } = await apiFetch('/users/login', {
           method: 'POST',
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email, password })
         });
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        alert('✅ Login realizado com sucesso! Redirecionando...');
-        showDespesasPage();
+        token = newToken;
+        user = newUser;
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+        alert('✅ Login realizado no SplitViagem!');
+        showPage('despesas-page');
       } catch (err) {
-        alert(`❌ Erro no login: ${err.message}`);
-        console.error('Login erro:', err);
+        alert('❌ Erro no login: ' + err.message);
       }
     }
 
-    // Criar Nova Viagem
-    async function handleCreateTrip() {
-      const name = document.getElementById('trip-name').value.trim();
-      if (!name || name.length < 3) {
-        alert('Nome da viagem obrigatório (mín. 3 caracteres)');
-        return;
-      }
+    // Register
+    async function handleRegister() {
+      const email = document.getElementById('register-email').value;
+      const password = document.getElementById('register-password').value;
+      if (!email || !password || password.length < 6) return alert('Email e senha válida (6+ chars) são obrigatórios.');
       try {
-        const data = await apiFetch('/api/trips', {
+        await apiFetch('/users/register', {
           method: 'POST',
-          body: JSON.stringify({ name }),
+          body: JSON.stringify({ email, password })
         });
-        alert(`✅ Viagem "${name}" criada! ID: ${data.id}`);
-        document.getElementById('trip-name').value = '';
-        loadTrips();  // Atualiza lista
+        alert('✅ Conta criada com sucesso no SplitViagem!');
+        showPage('login-page');
       } catch (err) {
-        alert(`❌ Erro ao criar viagem: ${err.message}`);
+        alert('❌ Erro no registro: ' + err.message);
       }
     }
 
-    // Carrega lista de despesas (atualizado com moedas)
+    // Adicionar Despesa (trip_id obrigatório)
+    async function handleAddDespesa() {
+      const name = document.getElementById('despesa-name').value;
+      const amount = parseFloat(document.getElementById('despesa-amount').value);
+      const currency = document.getElementById('despesa-currency').value;
+      const tripIdStr = document.getElementById('despesa-trip').value;
+      const tripId = tripIdStr ? parseInt(tripIdStr) : null;
+      if (!name || !amount || amount <= 0) return alert('Nome e valor válido são obrigatórios.');
+      if (!tripId) return alert('❌ Selecione uma viagem primeiro! Crie uma se necessário.');
+      try {
+        await apiFetch('/expenses', {
+          method: 'POST',
+          body: JSON.stringify({ name, amount, currency, trip_id: tripId })
+        });
+        alert('✅ Despesa adicionada à viagem no SplitViagem!');
+        document.getElementById('despesa-name').value = '';
+        document.getElementById('despesa-amount').value = '';
+        document.getElementById('despesa-currency').value = 'BRL';
+        document.getElementById('despesa-trip').value = '';  // Reset select
+        loadDespesas();  // Recarrega lista
+      } catch (err) {
+        alert('❌ Erro ao adicionar despesa: ' + err.message);
+      }
+    }
+
+    // Atualiza botão de adicionar despesa baseado no select
+    function updateAddDespesaButton() {
+      const tripSelect = document.getElementById('despesa-trip');
+      const btn = document.getElementById('add-despesa-btn');
+      if (tripSelect && tripSelect.value) {
+        btn.disabled = false;
+        btn.textContent = 'Adicionar Despesa ➕';
+        btn.style.background = 'linear-gradient(135deg, #007bff 0%, #0056b3 100%)';
+      } else {
+        btn.disabled = true;
+        btn.textContent = 'Selecione uma Viagem Primeiro';
+        btn.style.background = '#6c757d';
+      }
+    }
+
+    // Carrega listas de despesas (só de viagens, sem pessoais)
     async function loadDespesas() {
-      const listaEl = document.getElementById('despesas-lista');
-      if (!listaEl) return;
-      listaEl.innerHTML = '<li>Carregando...</li>';
+      const despesasEl = document.getElementById('despesas-viagens-lista');
+      if (!despesasEl) return;
+
+      despesasEl.innerHTML = '<li class="loading">Carregando despesas...</li>';
+
       try {
-        const { expenses } = await apiFetch('/api/expenses');
-        if (expenses.length > 0) {
-          listaEl.innerHTML = expenses.map(exp => {
-            const symbol = exp.currency === 'BRL' ? 'R$' : exp.currency + '$';
-            const converted = exp.amount_brl !== exp.amount ? ` (R$ ${exp.amount_brl.toFixed(2)})` : '';
+        const { expenses } = await apiFetch('/expenses');
+        const despesasViagens = expenses.filter(exp => exp.trip_id);  // Só com trip_id
+
+        if (despesasViagens.length > 0) {
+          despesasEl.innerHTML = despesasViagens.map(exp => {
+            const symbol = exp.currency === 'BRL' ? 'R$' : exp.currency + ' $';
+            const amountBRL = exp.amount_brl || exp.amount;
+            const converted = amountBRL !== exp.amount ? ` (R$ ${amountBRL.toFixed(2)})` : '';
             return `
               <li>
                 <strong>${exp.name}</strong> - ${symbol} ${exp.amount.toFixed(2)}${converted}<br>
-                ${exp.trip_id ? `Viagem ID: ${exp.trip_id}` : 'Pessoal'}<br>
-                Data: ${new Date(exp.created_at).toLocaleDateString('pt-BR')}
+                Viagem ID: ${exp.trip_id}<br>
+                Data: ${new Date(exp.created_at).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
               </li>
             `;
           }).join('');
         } else {
-          listaEl.innerHTML = '<li>Nenhuma despesa cadastrada ainda. Adicione a primeira!</li>';
+          despesasEl.innerHTML = '<li>Nenhuma despesa cadastrada ainda. Crie uma viagem e adicione! 💡</li>';
         }
       } catch (err) {
-        listaEl.innerHTML = `<li class="error">Erro ao carregar: ${err.message}</li>`;
+        despesasEl.innerHTML = `<li class="error">Erro ao carregar despesas: ${err.message} ❌</li>`;
         console.error('Load despesas erro:', err);
       }
     }
 
-    // Adicionar despesa (atualizado com currency)
-    async function handleAddDespesa() {
-      const name = document.getElementById('despesa-name').value.trim();
-      const amount = parseFloat(document.getElementById('despesa-amount').value);
-      const currency = document.getElementById('despesa-currency').value;
-      const trip_id = document.getElementById('despesa-trip').value ? parseInt(document.getElementById('despesa-trip').value) : null;
-      if (!name || isNaN(amount) || amount <= 0) {
-        alert('Nome e valor válido (> 0) obrigatórios');
-        return;
-      }
+    // Adicionar Viagem
+    async function handleAddTrip() {
+      const name = document.getElementById('trip-name').value;
+      if (!name || name.length < 3) return alert('Nome da viagem obrigatório (mín. 3 caracteres).');
       try {
-        await apiFetch('/api/expenses', {
+        const { id } = await apiFetch('/trips', {
           method: 'POST',
-          body: JSON.stringify({ name, amount, currency, trip_id }),
+          body: JSON.stringify({ name })
         });
-        alert('✅ Despesa adicionada com sucesso!');
-        // Limpa form
-        document.getElementById('despesa-name').value = '';
-        document.getElementById('despesa-amount').value = '';
-        document.getElementById('despesa-currency').value = 'BRL';
-        document.getElementById('despesa-trip').value = '';
-        loadDespesas();  // Atualiza lista
+        alert(`✅ Viagem '${name}' criada no SplitViagem! ID: ${id}`);
+        document.getElementById('trip-name').value = '';
+        loadTrips();  // Recarrega lista e select
       } catch (err) {
-        alert(`❌ Erro ao adicionar: ${err.message}`);
-        console.error('Add despesa erro:', err);
+        alert('❌ Erro ao criar viagem: ' + err.message);
       }
     }
 
-    // Carrega lista de viagens
+    // Carrega Viagens (Popula select e lista com inputs participants)
     async function loadTrips() {
-      const tripsEl = document.getElementById('trips-lista');
-      if (!tripsEl) return;
-      tripsEl.innerHTML = '<li>Carregando viagens...</li>';
+      const listaEl = document.getElementById('viagens-lista');
+      const tripSelect = document.getElementById('despesa-trip');
+      if (!listaEl) return;
+      listaEl.innerHTML = '<li class="loading">Carregando viagens...</li>';
+      if (tripSelect) {
+        tripSelect.innerHTML = '<option value="" disabled selected>Selecione uma viagem (crie se necessário)</option>';
+        updateAddDespesaButton();
+      }
+
       try {
-        const { trips } = await apiFetch('/api/trips');
+        const { trips } = await apiFetch('/trips');
         if (trips.length > 0) {
-          tripsEl.innerHTML = trips.map(trip => `
+          // Lista de viagens com inputs por ID
+          listaEl.innerHTML = trips.map(trip => `
             <li>
-              <strong>${trip.name}</strong> (ID: ${trip.id})<br>
-              <input id="participant-email-${trip.id}" placeholder="Email do participante (ex: amigo@example.com)" />
-              <input id="share-${trip.id}" type="number" step="0.1" min="0.1" placeholder="Share (default 1.0)" value="1.0" />
-              <button class="btn-small" onclick="addParticipant(${trip.id})">Adicionar Participante</button>
-              <button class="btn-small btn-secondary" onclick="loadSplit(${trip.id})">Ver Split</button>
+              <strong>🗺️ ${trip.name}</strong> (ID: ${trip.id})
+              <br>
+              <label for="participant-email-${trip.id}">Adicionar Participante</label>
+              <input id="participant-email-${trip.id}" placeholder="Email (ex: amigo@example.com)" style="width: 60%; display: inline-block; margin-right: 5px;" />
+              <input id="participant-share-${trip.id}" type="number" step="0.01" value="1.0" placeholder="Share (ex: 0.5)" style="width: 20%; display: inline-block; margin-right: 5px;" />
+              <button onclick="handleAddParticipant(${trip.id})" style="width: 18%; padding: 8px;">Adicionar 👥</button>
+              <br>
+              <button onclick="loadSplit(${trip.id})" style="width: 100%; margin-top: 10px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">Ver Split 📊</button>
             </li>
           `).join('');
+
+          // Popula select de despesa
+          if (tripSelect) {
+            const options = trips.map(trip => `<option value="${trip.id}">${trip.name} (ID: ${trip.id})</option>`).join('');
+            tripSelect.innerHTML += options;
+            updateAddDespesaButton();
+          }
         } else {
-          tripsEl.innerHTML = '<li>Nenhuma viagem cadastrada. Crie uma acima!</li>';
+          listaEl.innerHTML = '<li>Nenhuma viagem cadastrada. Crie uma acima para adicionar despesas! 🗺️</li>';
+          if (tripSelect) tripSelect.innerHTML = '<option value="" disabled selected>Crie uma viagem primeiro</option>';
         }
       } catch (err) {
-        tripsEl.innerHTML = `<li class="error">Erro ao carregar viagens: ${err.message}</li>`;
-        console.error('Load trips erro:', err);
+        listaEl.innerHTML = `<li class="error">Erro ao carregar viagens: ${err.message} ❌</li>`;
       }
     }
 
-    // Adicionar Participante a uma Viagem
-    async function addParticipant(tripId) {
-      const email = document.getElementById(`participant-email-${tripId}`).value.trim();
-      const share = parseFloat(document.getElementById(`share-${tripId}`).value) || 1.0;
-      if (!email) {
-        alert('Email do participante obrigatório');
-        return;
+    // Listener para select de viagem (atualiza botão dinamicamente)
+    document.addEventListener('DOMContentLoaded', () => {
+      const tripSelect = document.getElementById('despesa-trip');
+      if (tripSelect) {
+        tripSelect.addEventListener('change', updateAddDespesaButton);
       }
+    });
+
+    // Adicionar Participante
+    async function handleAddParticipant(tripId) {
+      const email = document.getElementById(`participant-email-${tripId}`).value;
+      const shareInput = document.getElementById(`participant-share-${tripId}`).value;
+      const share = parseFloat(shareInput.replace(',', '.')) || 1.0;  // Suporte vírgula PT-BR
+      if (!email) return alert('Email do participante obrigatório.');
+      if (share <= 0 || share > 1) return alert('Share deve ser entre 0.01 e 1.0 (ex: 0.5 para metade).');
       try {
-        const data = await apiFetch(`/api/trips/${tripId}/participants`, {
+        await apiFetch(`/trips/${tripId}/participants`, {
           method: 'POST',
-          body: JSON.stringify({ email, share }),
+          body: JSON.stringify({ email, share })
         });
-        alert(`✅ Participante "${email}" adicionado à viagem! Share: ${data.share}`);
-        // Limpa input
+        alert(`✅ Participante '${email}' adicionado à viagem (share: ${share.toFixed(2)})!`);
         document.getElementById(`participant-email-${tripId}`).value = '';
-        document.getElementById(`share-${tripId}`).value = '1.0';
-        loadSplit(tripId);  // Atualiza split auto
+        document.getElementById(`participant-share-${tripId}`).value = '1.0';
+        loadTrips();  // Recarrega para atualizar
       } catch (err) {
-        alert(`❌ Erro ao adicionar: ${err.message}`);
-        console.error('Add participant erro:', err);
+        alert('❌ Erro ao adicionar participante: ' + err.message);
       }
     }
 
-    // Carrega e Mostra Split de uma Viagem
+    // Carrega e Calcula Split de uma Viagem
     async function loadSplit(tripId) {
       const resultEl = document.getElementById('split-result');
-      resultEl.innerHTML = '<p>Carregando split...</p>';
+      if (!resultEl) return;
+      resultEl.innerHTML = '<div class="loading">Calculando split... ⏳</div>';
+
       try {
-        const data = await apiFetch(`/api/trips/${tripId}/split`);
-        if (data.participants.length === 0) {
-          resultEl.innerHTML = '<p class="error">Nenhum participante na viagem. Adicione um!</p>';
+        // Pega participantes da viagem
+        const { participants } = await apiFetch(`/trips/${tripId}/participants`);
+        if (participants.length === 0) {
+          resultEl.innerHTML = '<p class="error">Adicione participantes primeiro para calcular o split! 👥 <br> <span class="badge badge-error">Sem participantes</span></p>';
           return;
         }
-        let tableHtml = `
-          <h4>Split da Viagem "${data.trip_name}"</h4>
-          <p><strong>Total em BRL:</strong> R$ ${data.total_brl} | <strong>Participantes:</strong> ${data.total_participants}</p>
+
+        // Pega todas despesas e filtra por trip_id
+        const { expenses } = await apiFetch('/expenses');
+        const tripExpenses = expenses.filter(exp => exp.trip_id == tripId);
+
+        if (tripExpenses.length === 0) {
+          resultEl.innerHTML = '<p>Nenhuma despesa nesta viagem ainda. Adicione despesas selecionando esta viagem! 💰 <br> <span class="badge badge-success">Adicione despesas</span></p>';
+          return;
+        }
+
+        // Calcula total da viagem em BRL
+        const totalTripBRL = tripExpenses.reduce((sum, exp) => sum + (exp.amount_brl || exp.amount), 0);
+
+        // Calcula total_shares e split proporcional
+        const totalShares = participants.reduce((sum, p) => sum + p.share, 0);
+        const sharePerUnit = totalTripBRL / totalShares;
+
+        // Gera HTML da tabela
+        let html = `
+          <h3>📊 Split da Viagem ID ${tripId} (Total: R$ ${totalTripBRL.toFixed(2)})</h3>
+          <p><small>Total Shares: ${totalShares.toFixed(2)} | Por Unidade: R$ ${sharePerUnit.toFixed(2)}</small></p>
           <table class="split-table">
-            <thead>
-              <tr><th>Email</th><th>Share (%)</th><th>Deve Pagar (R$)</th></tr>
-            </thead>
+            <thead><tr><th>Pessoa</th><th>Share</th><th>Deve Pagar (R$)</th><th>Status</th></tr></thead>
             <tbody>
         `;
-        data.participants.forEach(p => {
-          const sharePercent = (p.share * 100).toFixed(1) + '%';
-          tableHtml += `<tr><td>${p.email}</td><td>${sharePercent}</td><td>R$ ${p.deve_pagar}</td></tr>`;
+        participants.forEach(p => {
+          const devePagar = sharePerUnit * p.share;
+          const isYou = p.email === user.email;
+          const status = isYou ? 'Você (Owner)' : `Para ${p.email}`;
+          const color = devePagar > 0 ? 'red' : 'green';
+          const badgeClass = devePagar > 0 ? 'badge-error' : 'badge-success';
+          html += `
+            <tr>
+              <td>${isYou ? '👤 Você' : `👥 ${p.email}`}</td>
+              <td>${p.share.toFixed(2)}</td>
+              <td style="color: ${color}; font-weight: 500;">R$ ${devePagar.toFixed(2)}</td>
+              <td><span class="badge ${badgeClass}">${status}</span></td>
+            </tr>
+          `;
         });
-        tableHtml += '</tbody></table>';
-        resultEl.innerHTML = tableHtml;
-        resultEl.classList.add('success');
+        html += '</tbody></table>';
+        resultEl.innerHTML = html;
+
       } catch (err) {
-        resultEl.innerHTML = `<p class="error">Erro no split: ${err.message}</p>`;
-        console.error('Load split erro:', err);
+        resultEl.innerHTML = `<p class="error">Erro no split: ${err.message} ❌ <br> <span class="badge badge-error">Verifique o backend</span></p>`;
+        console.error('Split erro:', err);
       }
     }
 
     // Logout
-    function logout() {
+    function handleLogout() {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      alert('Logout realizado! Volte sempre.');
-      showLoginPage();
+      token = null;
+      user = null;
+      showPage('login-page');
+      alert('👋 Saída do SplitViagem! Volte sempre.');
     }
-
-    // Inicialização da página
-    window.addEventListener('load', () => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        showDespesasPage();
-      } else {
-        showLoginPage();
-      }
-    });
   </script>
 </body>
 

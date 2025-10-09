@@ -1,5 +1,5 @@
 const express = require("express");
-const db = require("../../db"); // Caminho corrigido para db.js
+const db = require("../../app"); // Caminho corrigido para db.js
 
 const router = express.Router(); // ✅ Declaração do router (faltava isso!)
 
@@ -114,12 +114,10 @@ router.put("/:id", (req, res) => {
   const id = req.params.id;
   const { name, amount, trip_id } = req.body;
   if (!name && amount == null && trip_id == null) {
-    return res
-      .status(400)
-      .json({
-        error:
-          "Pelo menos um campo (name, amount ou trip_id) deve ser fornecido!",
-      });
+    return res.status(400).json({
+      error:
+        "Pelo menos um campo (name, amount ou trip_id) deve ser fornecido!",
+    });
   }
 
   try {

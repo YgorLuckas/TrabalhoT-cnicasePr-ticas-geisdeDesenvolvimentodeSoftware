@@ -63,7 +63,8 @@ db.serialize(() => {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     trip_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
-    share REAL DEFAULT 1.0,
+    share REAL DEFAULT 1.0 CHECK (share > 0 AND share <= 1),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(trip_id, user_id)
   )`);
 });
@@ -231,13 +232,15 @@ app.get("/api/expenses", authMiddleware, (req, res) => {
   );
 });
 
-// Nova Rota: POST /api/trips/:id/participants (adicionar participante)
+// Nova Rota: POST /api/trips/:id/participants (adicionar participante) - JÁ EXISTENTE, MANTIDO
 app.post("/api/trips/:id/participants", authMiddleware, async (req, res) => {
   const trip_id = parseInt(req.params.id);
   const { email, share = 1.0 } = req.body;
   const owner_id = req.userId;
-  if (!email || isNaN(share) || share <= 0) {
-    return res.status(400).json({ error: "Email e share >0 obrigatórios" });
+  if (!email || isNaN(share) || share <= 0 || share > 1) {
+    return res
+      .status(400)
+      .json({ error: "Email e share entre 0.01 e 1 obrigatórios" });
   }
   // Verifica trip
   db.get(
@@ -276,10 +279,12 @@ app.post("/api/trips/:id/participants", authMiddleware, async (req, res) => {
               "INSERT OR IGNORE INTO trip_participants (trip_id, user_id, share) VALUES (?, ?, ?)",
               [trip_id, u_id, share],
               function (err) {
-                if (err)
+                if (err || this.changes === 0) {
+                  // Se já existe, avisa
                   return res
-                    .status(500)
-                    .json({ error: "Erro ao adicionar participante" });
+                    .status(400)
+                    .json({ error: "Participante já adicionado ou erro" });
+                }
                 res.json({
                   message: "Participante adicionado!",
                   user_id: u_id,
@@ -294,7 +299,50 @@ app.post("/api/trips/:id/participants", authMiddleware, async (req, res) => {
   );
 });
 
-// Nova Rota: GET /api/trips/:id/split (calcula split)
+// ✅ NOVA ROTA: GET /api/trips/:id/participants (lista participantes - RESOLVE O 404!)
+app.get("/api/trips/:id/participants", authMiddleware, (req, res) => {
+  const trip_id = parseInt(req.params.id);
+  const owner_id = req.userId;
+
+  console.log("GET participants chamado para trip_id:", trip_id); // Debug log
+
+  // Verifica se trip existe e pertence ao owner
+  db.get(
+    "SELECT id FROM trips WHERE id = ? AND user_id = ?",
+    [trip_id, owner_id],
+    (err, trip) => {
+      if (err)
+        return res.status(500).json({ error: "Erro ao verificar viagem" });
+      if (!trip)
+        return res
+          .status(404)
+          .json({ error: "Viagem não encontrada ou acesso negado" });
+
+      // Busca participantes com JOIN para email
+      db.all(
+        `
+        SELECT tp.id, tp.share, tp.created_at, u.email 
+        FROM trip_participants tp 
+        JOIN users u ON tp.user_id = u.id 
+        WHERE tp.trip_id = ? 
+        ORDER BY tp.created_at ASC
+      `,
+        [trip_id],
+        (err, participants) => {
+          if (err) {
+            console.error("Erro ao listar participantes:", err);
+            return res
+              .status(500)
+              .json({ error: "Erro ao listar participantes" });
+          }
+          res.json({ participants }); // Formato exato: { participants: [{email, share, ...}] }
+        }
+      );
+    }
+  );
+});
+
+// Nova Rota: GET /api/trips/:id/split (calcula split) - MANTIDO (opcional, não usado no frontend)
 app.get("/api/trips/:id/split", authMiddleware, (req, res) => {
   const trip_id = parseInt(req.params.id);
   const user_id = req.userId;

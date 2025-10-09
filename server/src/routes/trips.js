@@ -1,5 +1,5 @@
 const express = require("express");
-const db = require("../../db");  // ✅ Corrigido: ../../ sobe para a raiz
+const db = require("../../app"); // ✅ Corrigido: ../../ sobe para a raiz
 
 const router = express.Router();
 
@@ -11,12 +11,16 @@ router.get("/", (req, res) => {
   }
 
   try {
-    const trips = db.prepare(`
+    const trips = db
+      .prepare(
+        `
       SELECT id, name, created_at 
       FROM trips 
       WHERE user_id = ? 
       ORDER BY created_at DESC
-    `).all(userId);
+    `
+      )
+      .all(userId);
     res.json({ trips, count: trips.length });
   } catch (error) {
     console.error("Erro ao listar trips:", error);
@@ -26,7 +30,7 @@ router.get("/", (req, res) => {
 
 // POST /api/trips (cria uma nova viagem)
 router.post("/", (req, res) => {
-  const { user_id, name } = req.body;  // Adicione mais campos se precisar (ex: destination, date)
+  const { user_id, name } = req.body; // Adicione mais campos se precisar (ex: destination, date)
   if (!user_id || !name) {
     return res.status(400).json({ error: "user_id e name são obrigatórios!" });
   }
@@ -37,9 +41,9 @@ router.post("/", (req, res) => {
       VALUES (?, ?)
     `);
     const result = insert.run(user_id, name);
-    res.status(201).json({ 
-      id: result.lastInsertRowid, 
-      message: "Viagem criada com sucesso!" 
+    res.status(201).json({
+      id: result.lastInsertRowid,
+      message: "Viagem criada com sucesso!",
     });
   } catch (error) {
     console.error("Erro ao criar trip:", error);
