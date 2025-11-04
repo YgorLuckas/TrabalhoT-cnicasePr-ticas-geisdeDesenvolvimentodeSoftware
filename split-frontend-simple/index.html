@@ -367,6 +367,7 @@
       </div>
 
       <!-- 4. ADICIONAR NOVA DESPESA (ÚLTIMO) -->
+      <!-- 4. ADICIONAR NOVA DESPESA (ÚLTIMO) -->
       <div class="card">
         <h3>Adicionar Nova Despesa 📈 (Selecione uma Viagem Primeiro)</h3>
         <form onsubmit="event.preventDefault(); handleAddDespesa();">
@@ -387,6 +388,7 @@
           <button id="add-despesa-btn" type="submit" disabled>Adicionar Despesa ➕</button>
         </form>
       </div>
+
 
       <!-- 3. DESPESAS DE VIAGENS (TERCEIRO) -->
       <div class="card">
@@ -618,15 +620,42 @@
       return `
     <li class="trip-item" data-trip-id="${trip.id}">
       <strong>🗺️ ${trip.name}</strong> (ID: ${trip.id})<br>
-      <label for="participant-email-${trip.id}">Adicionar Participante</label>
-      <input id="participant-email-${trip.id}" placeholder="" style="width: 60%; display: inline-block; margin-right: 5px;" />
-      <input id="participant-share-${trip.id}" type="number" step="0.01" value="1.0" placeholder="Share (ex: 0.5)" style="width: 20%; display: inline-block; margin-right: 5px;" />
-      <button onclick="handleAddParticipant(${trip.id})" style="width: 18%; padding: 8px;">Adicionar 👥</button>
-      <br>
-      <button onclick="loadSplit(${trip.id})" style="width: 100%; margin-top: 10px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">Ver Split 📊</button>
+
+      <label for="participant-email-${trip.id}">Adicionar Participante</label><br>
+      <input 
+        id="participant-email-${trip.id}" 
+        placeholder="Email do participante" 
+        style="width: 60%; display: inline-block; margin-right: 5px;"
+      />
+      <input 
+        id="participant-share-${trip.id}" 
+        type="number" 
+        step="0.01" 
+        value="1.0" 
+        placeholder="Share (ex: 0.5)" 
+        style="width: 20%; display: inline-block; margin-right: 5px;"
+      />
+      <button 
+        type="button" 
+        onclick="handleAddParticipant(event, ${trip.id})"
+        style="width: 18%; padding: 8px;"
+      >
+        Adicionar 👥
+      </button>
+
+      <br><br>
+      <button 
+        type="button" 
+        onclick="loadSplit(${trip.id})" 
+        style="width: 100%; margin-top: 5px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%);"
+      >
+        Ver despesas 📊
+      </button>
     </li>
   `;
     }
+
+
     function filtrarViagem() {
       const filtro = document.getElementById('trip-filter').value;
       const itens = document.querySelectorAll('#viagens-lista .trip-item');
@@ -650,24 +679,58 @@
     });
 
     // Adicionar Participante
-    async function handleAddParticipant(tripId) {
-      const email = document.getElementById(`participant-email-${tripId}`).value;
+    async function handleAddParticipant(event, tripId) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (event) event.preventDefault(); // Evita reload de formulário
+
+      const email = document.getElementById(`participant-email-${tripId}`).value.trim();
       const shareInput = document.getElementById(`participant-share-${tripId}`).value;
-      const share = parseFloat(shareInput.replace(',', '.')) || 1.0;  // Suporte vírgula PT-BR
+      const share = parseFloat(shareInput.replace(',', '.')) || 1.0;
+
       if (!email) return alert('Email do participante obrigatório.');
       if (share <= 0 || share > 1) return alert('Share deve ser entre 0.01 e 1.0 (ex: 0.5 para metade).');
+
       try {
         await apiFetch(`/trips/${tripId}/participants`, {
           method: 'POST',
           body: JSON.stringify({ email, share })
         });
+
         document.getElementById(`participant-email-${tripId}`).value = '';
         document.getElementById(`participant-share-${tripId}`).value = '1.0';
-        loadTrips();  // Recarrega para atualizar
+
+        // Atualiza apenas a lista de viagens, sem recarregar página
+        // guarda viagem selecionada
+        const tripSelect = document.getElementById('despesa-trip');
+        const selectedTripId = tripSelect ? tripSelect.value : null;
+
+        // recarrega viagens
+        await loadTrips();
+
+        // restaura seleção se houver
+        if (selectedTripId && tripSelect) {
+          tripSelect.value = selectedTripId;
+        }
+
+        // feedback visual
+        const btn = event.target;
+        btn.textContent = '✅ Adicionado!';
+        btn.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+        btn.disabled = true;
+
+        setTimeout(() => {
+          btn.textContent = 'Adicionar 👥';
+          btn.style.background = '';
+          btn.disabled = false;
+        }, 1000);
+
       } catch (err) {
         alert('❌ Erro ao adicionar participante: ' + err.message);
       }
     }
+
 
     // Carrega e Calcula Split de uma Viagem
     async function loadSplit(tripId) {
@@ -740,6 +803,9 @@
       showPage('login-page');
       alert('👋 Saída do SplitViagem! Volte sempre.');
     }
+
+    window.addEventListener('submit', e => e.preventDefault());
+
   </script>
 </body>
 
