@@ -354,18 +354,15 @@
       </div>
 
       <!-- 2. MINHAS VIAGENS (SEGUNDO) -->
+      <!-- 2. MINHAS VIAGENS (SEGUNDO) -->
       <div class="card">
         <h3>Minhas Viagens 👥</h3>
+        <label for="trip-filter">Selecionar Viagem</label>
+        <select id="trip-filter" onchange="filtrarViagem()">
+          <option value="all">Mostrar todas</option>
+        </select>
         <ul id="viagens-lista">
           <li class="loading">Carregando viagens...</li>
-        </ul>
-      </div>
-
-      <!-- 3. DESPESAS DE VIAGENS (TERCEIRO) -->
-      <div class="card">
-        <h3>Despesas de Viagens 💰</h3>
-        <ul id="despesas-viagens-lista">
-          <li class="loading">Carregando despesas...</li>
         </ul>
       </div>
 
@@ -390,6 +387,16 @@
           <button id="add-despesa-btn" type="submit" disabled>Adicionar Despesa ➕</button>
         </form>
       </div>
+
+      <!-- 3. DESPESAS DE VIAGENS (TERCEIRO) -->
+      <div class="card">
+        <h3>Despesas de Viagens 💰</h3>
+        <ul id="despesas-viagens-lista">
+          <li class="loading">Carregando despesas...</li>
+        </ul>
+      </div>
+
+
 
       <div id="split-result" class="card"></div>
 
@@ -457,7 +464,6 @@
         user = newUser;
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
-        alert('✅ Login realizado no SplitViagem!');
         showPage('despesas-page');
       } catch (err) {
         alert('❌ Erro no login: ' + err.message);
@@ -495,7 +501,6 @@
           method: 'POST',
           body: JSON.stringify({ name, amount, currency, trip_id: tripId })
         });
-        alert('✅ Despesa adicionada à viagem no SplitViagem!');
         document.getElementById('despesa-name').value = '';
         document.getElementById('despesa-amount').value = '';
         document.getElementById('despesa-currency').value = 'BRL';
@@ -563,7 +568,6 @@
           method: 'POST',
           body: JSON.stringify({ name })
         });
-        alert(`✅ Viagem '${name}' criada no SplitViagem! ID: ${id}`);
         document.getElementById('trip-name').value = '';
         loadTrips();  // Recarrega lista e select
       } catch (err) {
@@ -575,7 +579,9 @@
     async function loadTrips() {
       const listaEl = document.getElementById('viagens-lista');
       const tripSelect = document.getElementById('despesa-trip');
+      const tripFilter = document.getElementById('trip-filter');
       if (!listaEl) return;
+
       listaEl.innerHTML = '<li class="loading">Carregando viagens...</li>';
       if (tripSelect) {
         tripSelect.innerHTML = '<option value="" disabled selected>Selecione uma viagem (crie se necessário)</option>';
@@ -585,21 +591,16 @@
       try {
         const { trips } = await apiFetch('/trips');
         if (trips.length > 0) {
-          // Lista de viagens com inputs por ID
-          listaEl.innerHTML = trips.map(trip => `
-            <li>
-              <strong>🗺️ ${trip.name}</strong> (ID: ${trip.id})
-              <br>
-              <label for="participant-email-${trip.id}">Adicionar Participante</label>
-              <input id="participant-email-${trip.id}" placeholder="Email (ex: amigo@example.com)" style="width: 60%; display: inline-block; margin-right: 5px;" />
-              <input id="participant-share-${trip.id}" type="number" step="0.01" value="1.0" placeholder="Share (ex: 0.5)" style="width: 20%; display: inline-block; margin-right: 5px;" />
-              <button onclick="handleAddParticipant(${trip.id})" style="width: 18%; padding: 8px;">Adicionar 👥</button>
-              <br>
-              <button onclick="loadSplit(${trip.id})" style="width: 100%; margin-top: 10px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">Ver Split 📊</button>
-            </li>
-          `).join('');
+          // Preenche o filtro de viagens
+          if (tripFilter) {
+            tripFilter.innerHTML = '<option value="all">Mostrar todas</option>' +
+              trips.map(trip => `<option value="${trip.id}">${trip.name}</option>`).join('');
+          }
 
-          // Popula select de despesa
+          // Mostra todas inicialmente
+          listaEl.innerHTML = trips.map(trip => gerarItemViagem(trip)).join('');
+
+          // Atualiza select da despesa
           if (tripSelect) {
             const options = trips.map(trip => `<option value="${trip.id}">${trip.name} (ID: ${trip.id})</option>`).join('');
             tripSelect.innerHTML += options;
@@ -607,11 +608,37 @@
           }
         } else {
           listaEl.innerHTML = '<li>Nenhuma viagem cadastrada. Crie uma acima para adicionar despesas! 🗺️</li>';
-          if (tripSelect) tripSelect.innerHTML = '<option value="" disabled selected>Crie uma viagem primeiro</option>';
         }
       } catch (err) {
         listaEl.innerHTML = `<li class="error">Erro ao carregar viagens: ${err.message} ❌</li>`;
       }
+    }
+
+    function gerarItemViagem(trip) {
+      return `
+    <li class="trip-item" data-trip-id="${trip.id}">
+      <strong>🗺️ ${trip.name}</strong> (ID: ${trip.id})<br>
+      <label for="participant-email-${trip.id}">Adicionar Participante</label>
+      <input id="participant-email-${trip.id}" placeholder="" style="width: 60%; display: inline-block; margin-right: 5px;" />
+      <input id="participant-share-${trip.id}" type="number" step="0.01" value="1.0" placeholder="Share (ex: 0.5)" style="width: 20%; display: inline-block; margin-right: 5px;" />
+      <button onclick="handleAddParticipant(${trip.id})" style="width: 18%; padding: 8px;">Adicionar 👥</button>
+      <br>
+      <button onclick="loadSplit(${trip.id})" style="width: 100%; margin-top: 10px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">Ver Split 📊</button>
+    </li>
+  `;
+    }
+    function filtrarViagem() {
+      const filtro = document.getElementById('trip-filter').value;
+      const itens = document.querySelectorAll('#viagens-lista .trip-item');
+
+      itens.forEach(item => {
+        const id = item.getAttribute('data-trip-id');
+        if (filtro === 'all' || id === filtro) {
+          item.style.display = 'block';
+        } else {
+          item.style.display = 'none';
+        }
+      });
     }
 
     // Listener para select de viagem (atualiza botão dinamicamente)
@@ -634,7 +661,6 @@
           method: 'POST',
           body: JSON.stringify({ email, share })
         });
-        alert(`✅ Participante '${email}' adicionado à viagem (share: ${share.toFixed(2)})!`);
         document.getElementById(`participant-email-${tripId}`).value = '';
         document.getElementById(`participant-share-${tripId}`).value = '1.0';
         loadTrips();  // Recarrega para atualizar
