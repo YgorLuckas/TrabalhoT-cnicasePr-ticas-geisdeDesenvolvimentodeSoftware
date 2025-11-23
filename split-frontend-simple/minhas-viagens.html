@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minhas Viagens</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2>UnexViagem</h2>
+        </div>
+        <ul class="sidebar-nav">
+            <li><a href="index.html">💰 UnexViagem</a></li>
+            <li><a href="dashboard.html">📊 Dashboard</a></li>
+            <li><a href="minhas-viagens.html" class="active">✈️ Minhas Viagens</a></li>
+            <li><a href="solicitar.html">📝 Solicitar Viagem</a></li>
+            <li><a href="relatorios.html">💰 Relatórios</a></li>
+            <li><a href="configuracoes.html">⚙️ Configurações</a></li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <header>
+            <h1>Minhas Viagens</h1>
+        </header>
+
+        <section class="stats-grid">
+            <div class="stat-card">
+                <h3>Meu Total Gasto (Ano)</h3>
+                <p id="total-gasto-ano">Carregando...</p>
+            </div>
+            <div class="stat-card">
+                <h3>Minhas Pendências</h3>
+                <p id="minhas-pendencias">Carregando...</p> <!-- Agora dinâmico -->
+            </div>
+            <div class="stat-card">
+                <h3>Viagens Concluídas</h3>
+                <p id="viagens-concluidas">Carregando...</p>
+            </div>
+            <div class="stat-card">
+                <h3>Reembolsos Pendentes</h3>
+                <p id="reembolsos-pendentes" class="negative">Carregando...</p> <!-- Agora dinâmico -->
+            </div>
+        </section>
+
+        <section class="filter-bar">
+            <div class="filter-group">
+                <label for="filter-status">Status</label>
+                <select id="filter-status">
+                    <option value="">Todos</option>
+                    <option value="aprovada">Aprovada</option>
+                    <option value="pendente">Pendente</option>
+                    <option value="rejeitada">Rejeitada</option>
+                    <option value="concluida">Concluída</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="filter-data-inicio">De</label>
+                <input type="date" id="filter-data-inicio">
+            </div>
+            <div class="filter-group">
+                <label for="filter-data-fim">Até</label>
+                <input type="date" id="filter-data-fim">
+            </div>
+            <div class="filter-actions">
+                <button type="button" class="btn btn-primary" onclick="filtrarViagens()">🔍 Filtrar</button>
+                <a href="solicitar.html" class="btn btn-success">➕ Nova Solicitação</a>
+            </div>
+        </section>
+
+        <section class="table-container">
+            <table id="viagens-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Destino</th>
+                        <th>Data Início</th>
+                        <th>Data Fim</th>
+                        <th>Custo Estimado</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="viagens-tbody">
+                    <tr>
+                        <td colspan="7">Carregando viagens...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <script>
+        // Checagem de autenticação
+        if (!localStorage.getItem('token')) {
+            window.location.href = 'index.html';
+        }
+
+        const API_BASE = 'http://localhost:4000/api';
+        const token = localStorage.getItem('token');
+
+        async function apiFetch(endpoint, options = {}) {
+            const headers = { 'Content-Type': 'application/json', ...options.headers };
+            if (token) headers.Authorization = `Bearer ${token}`;
+            const response = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
+            if (response.status === 401) {
+                alert('Sessão expirada. Faça login novamente.');
+                window.location.href = 'index.html';
+            }
+            if (!response.ok) throw new Error(`Erro: ${response.status}`);
+            return response.json();
+        }
+
+        // Dados globais para filtros
+        let allTrips = [];
+        let allExpenses = [];
+
+        async function loadViagens() {
+            try {
+                const [tripsData, expensesData] = await Promise.all([
+                    apiFetch('/trips'),
+                    apiFetch('/expenses')
+                ]);
+
+                allTrips = tripsData.trips;
+                allExpenses = expensesData.expenses;
+
+                // Calcular estatísticas
+                const currentYear = new Date().getFullYear();
+                const totalGastoAno = allExpenses
+                    .filter(e => new Date(e.created_at).getFullYear() === currentYear)
+                    .reduce((sum, e) => sum + e.amount_brl, 0);
+
+                const viagensConcluidas = allTrips.filter(trip => getTripStatus(trip) === 'concluida').length;
+                const minhasPendencias = allTrips.filter(trip => getTripStatus(trip) === 'pendente').length;
+                const reembolsosPendentes = allExpenses
+                    .filter(e => !e.reimbursed) // Assumindo campo 'reimbursed' na API; ajuste se necessário
+                    .reduce((sum, e) => sum + e.amount_brl, 0);
+
+                document.getElementById('total-gasto-ano').textContent = `R$ ${totalGastoAno.toFixed(2)}`;
+                document.getElementById('viagens-concluidas').textContent = viagensConcluidas;
+                document.getElementById('minhas-pendencias').textContent = minhasPendencias;
+                document.getElementById('reembolsos-pendentes').textContent = `R$ ${reembolsosPendentes.toFixed(2)}`;
+
+                // Renderizar tabela inicial (sem filtros)
+                renderViagens(allTrips);
+            } catch (err) {
+                console.error('Erro ao carregar viagens:', err);
+                alert('Erro ao carregar dados.');
+            }
+        }
+
+        // Função para determinar status (ajuste baseado na API)
+        function getTripStatus(trip) {
+            if (trip.status) return trip.status; // Se a API tiver campo 'status'
+            const today = new Date();
+            const endDate = new Date(trip.end_date);
+            return endDate < today ? 'concluida' : 'aprovada'; // Inferência simples
+        }
+
+        // Renderizar tabela
+        function renderViagens(trips) {
+            const tbody = document.getElementById('viagens-tbody');
+            if (trips.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7">Nenhuma viagem encontrada</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = trips.map(trip => {
+                const tripExpenses = allExpenses.filter(e => e.trip_id === trip.id);
+                const estimatedCost = tripExpenses.reduce((sum, e) => sum + e.amount_brl, 0);
+                const status = getTripStatus(trip);
+                const statusClass = `status-${status}`;
+                return `
+                    <tr>
+                        <td>V-${trip.id}</td>
+                        <td>${trip.name}</td>
+                        <td>${formatDate(trip.start_date)}</td>
+                        <td>${formatDate(trip.end_date)}</td>
+                        <td>R$ ${estimatedCost.toFixed(2)}</td>
+                        <td><span class="status-badge ${statusClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></td>
+                        <td class="actions-cell">
+                            <button onclick="verViagem(${trip.id})">Ver</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Formatar datas
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('pt-BR');
+        }
+
+        // Filtrar viagens
+        function filtrarViagens() {
+            const statusFilter = document.getElementById('filter-status').value;
+            const startDateFilter = document.getElementById('filter-data-inicio').value;
+            const endDateFilter = document.getElementById('filter-data-fim').value;
+
+            let filteredTrips = allTrips;
+
+            if (statusFilter) {
+                filteredTrips = filteredTrips.filter(trip => getTripStatus(trip) === statusFilter);
+            }
+            if (startDateFilter) {
+                filteredTrips = filteredTrips.filter(trip => new Date(trip.start_date) >= new Date(startDateFilter));
+            }
+            if (endDateFilter) {
+                filteredTrips = filteredTrips.filter(trip => new Date(trip.end_date) <= new Date(endDateFilter));
+            }
+
+            renderViagens(filteredTrips);
+        }
+
+        // Ação "Ver" (placeholder; pode redirecionar para detalhes)
+        function verViagem(tripId) {
+            alert(`Ver detalhes da viagem ${tripId}`); // Substitua por redirecionamento, ex.: window.location.href = `detalhes-viagem.html?id=${tripId}`;
+        }
+
+        // Inicializar
+        loadViagens();
+    </script>
+</body>
+
+</html>

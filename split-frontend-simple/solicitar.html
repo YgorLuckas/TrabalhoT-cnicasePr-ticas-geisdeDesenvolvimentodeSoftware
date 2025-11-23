@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitar Viagem</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2>UnexViagem</h2>
+        </div>
+        <ul class="sidebar-nav">
+            <li><a href="index.html">💰 UnexViagem</a></li>
+            <li><a href="dashboard.html">📊 Dashboard</a></li>
+            <li><a href="minhas-viagens.html">✈️ Minhas Viagens</a></li>
+            <li><a href="solicitar.html" class="active">📝 Solicitar Viagem</a></li>
+            <li><a href="relatorios.html">💰 Relatórios</a></li>
+            <li><a href="configuracoes.html">⚙️ Configurações</a></li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <header>
+            <h1>Solicitar Viagem</h1>
+        </header>
+
+        <section class="form-container">
+            <div class="form-header">
+                <h2>Nova Solicitação de Viagem</h2>
+            </div>
+            
+            <form action="#" method="POST">
+                <div class="form-grid">
+                    
+                    <div class="form-group">
+                        <label for="destino">Destino (Cidade, Estado/País)</label>
+                        <input type="text" id="destino" name="destino" placeholder="Ex: São Paulo, SP" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="centro-custo">Centro de Custo</label>
+                        <select id="centro-custo" name="centro-custo" required>
+                            <option value="">Selecione...</option>
+                            <option value="vendas">Vendas</option>
+                            <option value="marketing">Marketing</option>
+                            <option value="desenvolvimento">Desenvolvimento</option>
+                            <option value="administrativo">Administrativo</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="data-inicio">Data de Início</label>
+                        <input type="date" id="data-inicio" name="data-inicio" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="data-fim">Data de Fim</label>
+                        <input type="date" id="data-fim" name="data-fim" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="custo-estimado">Custo Estimado (R$)</label>
+                        <input type="number" id="custo-estimado" name="custo-estimado" placeholder="Ex: 1500.00" step="0.01" min="0" required>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="motivo">Motivo da Viagem</label>
+                        <textarea id="motivo" name="motivo" placeholder="Descreva o objetivo principal da viagem..." required></textarea>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="observacoes">Observações (Opcional)</label>
+                        <textarea id="observacoes" name="observacoes" placeholder="Informações adicionais..."></textarea>
+                    </div>
+
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Enviar Solicitação</button>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    <script>
+        // Checagem de autenticação
+        if (!localStorage.getItem('token')) {
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>

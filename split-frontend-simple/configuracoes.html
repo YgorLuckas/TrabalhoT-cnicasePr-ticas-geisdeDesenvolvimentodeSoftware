@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurações</title>
+    
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2>Controle de Viagens</h2>
+        </div>
+        <ul class="sidebar-nav">
+            <li><a href="dashboard.html">📊 Dashboard</a></li>
+            <li><a href="minhas-viagens.html">✈️ Minhas Viagens</a></li>
+            <li><a href="solicitar.html">📝 Solicitar Viagem</a></li>
+            <li><a href="relatorios.html">💰 Relatórios</a></li>
+            <li><a href="configuracoes.html">⚙️ Configurações</a></li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <header>
+            <h1>Configurações</h1>
+        </header>
+
+        <div class="settings-layout">
+
+            <section class="settings-card">
+                <div class="settings-card-header">
+                    <h2>Meu Perfil</h2>
+                </div>
+                <div class="settings-card-body">
+                    <div class="form-group">
+                        <label for="nome">Nome Completo</label>
+                        <input type="text" id="nome" value="Usuário de Exemplo">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">E-mail</label>
+                        <input type="email" id="email" value="usuario@empresa.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="senha-atual">Senha Atual</label>
+                        <input type="password" id="senha-atual" placeholder="••••••••">
+                    </div>
+                    <div class="form-group">
+                        <label for="nova-senha">Nova Senha</label>
+                        <input type="password" id="nova-senha" placeholder="••••••••">
+                    </div>
+                </div>
+                <div class="settings-card-footer">
+                    <button class="btn btn-primary">Salvar Alterações</button>
+                </div>
+            </section>
+
+            <section class="settings-card">
+                <div class="settings-card-header">
+                    <h2>Preferências de Notificação</h2>
+                </div>
+                <div class="settings-card-body">
+                    <div class="notification-group full-width">
+                        <input type="checkbox" id="notif-email-aprov" checked>
+                        <label for="notif-email-aprov">Enviar e-mail quando minha viagem for aprovada/rejeitada.</label>
+                    </div>
+                    <div class="notification-group full-width">
+                        <input type="checkbox" id="notif-email-lembrete" checked>
+                        <label for="notif-email-lembrete">Enviar e-mail um dia antes da minha viagem.</label>
+                    </div>
+                    <div class="notification-group full-width">
+                        <input type="checkbox" id="notif-app-status">
+                        <label for="notif-app-status">Notificar no app sobre mudança de status.</label>
+                    </div>
+                </div>
+                <div class="settings-card-footer">
+                    <button class="btn btn-primary">Salvar Preferências</button>
+                </div>
+            </section>
+            
+            <section class="settings-card">
+                <div class="settings-card-header">
+                    <h2>Gestão da Conta (Admin)</h2>
+                </div>
+                <div class="settings-card-body item-list">
+                    <div class="form-group full-width">
+                        <label>Centros de Custo Ativos</label>
+                        <ul>
+                            <li><span>Vendas</span> <button>Remover</button></li>
+                            <li><span>Marketing</span> <button>Remover</button></li>
+                            <li><span>Desenvolvimento</span> <button>Remover</button></li>
+                        </ul>
+                        
+                        <div class="add-item-form">
+                            <input type="text" placeholder="Nome do novo Centro de Custo">
+                            <button class="btn btn-success">Adicionar</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script src="js/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatórios</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2>UnexViagem</h2>
+        </div>
+        <ul class="sidebar-nav">
+            <li><a href="index.html">💰 UnexViagem</a></li>
+            <li><a href="dashboard.html">📊 Dashboard</a></li>
+            <li><a href="minhas-viagens.html">✈️ Minhas Viagens</a></li>
+            <li><a href="solicitar.html">📝 Solicitar Viagem</a></li>
+            <li><a href="relatorios.html" class="active">💰 Relatórios</a></li>
+            <li><a href="configuracoes.html">⚙️ Configurações</a></li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <header>
+            <h1>Relatórios</h1>
+        </header>
+
+        <section class="filter-container">
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label for="filter-mes-ano">Selecionar Mês/Ano</label>
+                    <select id="filter-mes-ano">
+                        <option value="">Todos os Períodos</option>
+                        <!-- Opções preenchidas dinamicamente -->
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="filter-status">Status</label>
+                    <select id="filter-status">
+                        <option value="">Todos</option>
+                        <option value="aprovada">Aprovada</option>
+                        <option value="pendente">Pendente</option>
+                        <option value="concluida">Concluída</option>
+                    </select>
+                </div>
+
+                <div class="filter-actions">
+                    <button type="button" class="btn btn-secondary" onclick="exportarRelatorio()">Exportar (Excel)</button>
+                    <button type="button" class="btn btn-primary" onclick="gerarRelatorio()">📈 Gerar Relatório</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="report-display-area" id="report-display" style="display: none;">
+            <div class="report-header">
+                <h2>Relatório: Resumo de Viagens</h2>
+                <p id="report-periodo">Período: Carregando...</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total de Viagens</h3>
+                    <p id="total-viagens">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Gasto Total</h3>
+                    <p id="gasto-total">R$ 0,00</p>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table id="report-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Destino</th>
+                            <th>Data Início</th>
+                            <th>Data Fim</th>
+                            <th>Custo Total</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="report-table-body">
+                        <tr>
+                            <td colspan="6">Selecione filtros e gere o relatório</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Checagem de autenticação
+        if (!localStorage.getItem('token')) {
+            window.location.href = 'index.html';
+        }
+
+        const API_BASE = 'http://localhost:4000/api';
+        const token = localStorage.getItem('token');
+
+        async function apiFetch(endpoint, options = {}) {
+            const headers = { 'Content-Type': 'application/json', ...options.headers };
+            if (token) headers.Authorization = `Bearer ${token}`;
+            const response = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
+            if (response.status === 401) {
+                alert('Sessão expirada. Faça login novamente.');
+                window.location.href = 'index.html';
+            }
+            if (!response.ok) throw new Error(`Erro: ${response.status}`);
+            return response.json();
+        }
+
+        let allTrips = [];
+        let allExpenses = [];
+
+        // Carregar dados e preencher select de mês/ano
+        async function loadData() {
+            try {
+                const [tripsData, expensesData] = await Promise.all([
+                    apiFetch('/trips'),
+                    apiFetch('/expenses')
+                ]);
+                allTrips = tripsData.trips;
+                allExpenses = expensesData.expenses;
+
+                // Preencher select de mês/ano
+                const selectMesAno = document.getElementById('filter-mes-ano');
+                const uniqueMesAno = new Set();
+                allTrips.forEach(trip => {
+                    const startDate = new Date(trip.start_date);
+                    const endDate = new Date(trip.end_date);
+
+                    // Verificar se datas são válidas (evita NaN)
+                    if (!isNaN(startDate.getTime())) {
+                        const startMesAno = `${getMonthName(startDate.getMonth())} ${startDate.getFullYear()}`;
+                        uniqueMesAno.add(startMesAno);
+                        console.log(`Viagem ${trip.id}: Start - ${startMesAno}`); // Debug - remova depois
+                    } else {
+                        console.warn(`Data de início inválida para viagem ${trip.id}: ${trip.start_date}`);
+                    }
+
+                    if (!isNaN(endDate.getTime())) {
+                        const endMesAno = `${getMonthName(endDate.getMonth())} ${endDate.getFullYear()}`;
+                        uniqueMesAno.add(endMesAno);
+                        console.log(`Viagem ${trip.id}: End - ${endMesAno}`); // Debug - remova depois
+                    } else {
+                        console.warn(`Data de fim inválida para viagem ${trip.id}: ${trip.end_date}`);
+                    }
+                });
+
+                selectMesAno.innerHTML = '<option value="">Todos os Períodos</option>';
+                Array.from(uniqueMesAno).sort().forEach(mesAno => {
+                    const option = document.createElement('option');
+                    option.value = mesAno;
+                    option.textContent = mesAno;
+                    selectMesAno.appendChild(option);
+                });
+            } catch (err) {
+                console.error('Erro ao carregar dados:', err);
+                alert('Erro ao carregar dados para relatórios.');
+            }
+        }
+
+        // Gerar relatório simples
+        async function gerarRelatorio() {
+            await loadData();
+
+            const mesAno = document.getElementById('filter-mes-ano').value;
+            const status = document.getElementById('filter-status').value;
+
+            // Filtrar viagens por mês/ano
+            let filteredTrips = allTrips.filter(trip => {
+                const tripStatus = getTripStatus(trip);
+                if (status && tripStatus !== status) return false;
+                if (!mesAno) return true; // Todos os períodos
+
+                const startDate = new Date(trip.start_date);
+                const endDate = new Date(trip.end_date);
+                const startMesAno = `${getMonthName(startDate.getMonth())} ${startDate.getFullYear()}`;
+                const endMesAno = `${getMonthName(endDate.getMonth())} ${endDate.getFullYear()}`;
+                return startMesAno === mesAno || endMesAno === mesAno;
+            });
+
+            // Calcular estatísticas simples
+            const totalViagens = filteredTrips.length;
+            const totalGasto = filteredTrips.reduce((sum, trip) => {
+                const tripExpenses = allExpenses.filter(e => e.trip_id === trip.id);
+                return sum + tripExpenses.reduce((subSum, e) => subSum + e.amount_brl, 0);
+            }, 0);
+
+            // Exibir relatório
+            document.getElementById('report-display').style.display = 'block';
+            document.getElementById('report-periodo').textContent = `Período: ${mesAno || 'Todos'}`;
+            document.getElementById('total-viagens').textContent = totalViagens;
+            document.getElementById('gasto-total').textContent = `R$ ${totalGasto.toFixed(2)}`;
+
+            // Renderizar tabela simples
+            const tbody = document.getElementById('report-table-body');
+            if (filteredTrips.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6">Nenhuma viagem encontrada</td></tr>';
+                return;
+            }
+            tbody.innerHTML = filteredTrips.map(trip => {
+                const tripExpenses = allExpenses.filter(e => e.trip_id === trip.id);
+                const totalCost = tripExpenses.reduce((sum, e) => sum + e.amount_brl, 0);
+                const statusBadge = getTripStatus(trip);
+                return `
+                    <tr>
+                        <td>V-${trip.id}</td>
+                        <td>${trip.name}</td>
+                        <td>${formatDate(trip.start_date)}</td>
+                        <td>${formatDate(trip.end_date)}</td>
+                        <td>R$ ${totalCost.toFixed(2)}</td>
+                        <td><span class="status-badge status-${statusBadge}">${statusBadge.charAt(0).toUpperCase() + statusBadge.slice(1)}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Funções auxiliares
+        function getTripStatus(trip) {
+            const today = new Date();
+            const endDate = new Date(trip.end_date);
+            return endDate < today ? 'concluida' : 'aprovada'; // Inferência simples
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('pt-BR');
+        }
+
+        function getMonthName(monthIndex) {
+            const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            return months[monthIndex];
+        }
+
+        // Exportar (placeholder)
+        function exportarRelatorio() {
+            alert('Funcionalidade de exportar ainda não implementada. Use uma biblioteca como SheetJS para Excel.');
+        }
+
+        // Inicializar
+        loadData();
+    </script>
+</body>
+
+</html>

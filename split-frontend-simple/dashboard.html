@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Viagens</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2>UnexViagem</h2>
+        </div>
+        <ul class="sidebar-nav">
+            <li><a href="index.html">💰 UnexViagem</a></li>
+            <li><a href="dashboard.html" class="active">📊 Dashboard</a></li>
+            <li><a href="minhas-viagens.html">✈️ Minhas Viagens</a></li>
+            <li><a href="solicitar.html">📝 Solicitar Viagem</a></li>
+            <li><a href="relatorios.html">💰 Relatórios</a></li>
+            <li><a href="configuracoes.html">⚙️ Configurações</a></li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <header>
+            <h1>Dashboard de Viagens</h1>
+        </header>
+
+        <section class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Gasto (Mês)</h3>
+                <p id="total-gasto">Carregando...</p>
+            </div>
+            <div class="stat-card">
+                <h3>Gasto por Despesa</h3>
+                <ul id="gasto-por-categoria">
+                    <li>Carregando...</li>
+                </ul>
+            </div>
+            <div class="stat-card">
+                <h3>Viagens Futuras</h3>
+                <p id="viagens-futuras">Carregando...</p>
+            </div>
+            <div class="stat-card">
+                <h3>Aprovações Pendentes</h3>
+                <p id="aprovacoes-pendentes">0</p>
+            </div>
+        </section>
+
+        <section class="filter-bar">
+            <div class="filter-group">
+                <label for="search-nome">Pesquisar Destino</label>
+                <input type="text" id="search-nome" placeholder="Digite o destino...">
+            </div>
+
+            <div class="filter-group">
+                <label for="trip-select">Filtrar por Viagem</label>
+                <select id="trip-select">
+                    <option value="">Todas</option>
+                </select>
+            </div>
+
+            <button type="button" class="btn btn-primary" onclick="loadDashboard()">🔍 Filtrar</button>
+        </section>
+
+        <section class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Funcionário</th>
+                        <th>Destino</th>
+                        <th>Data Início</th>
+                        <th>Data Fim</th>
+                        <th>Custo Estimado</th>
+                    </tr>
+                </thead>
+                <tbody id="dashboard-tbody">
+                    <tr>
+                        <td colspan="6">Carregando dados...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <script>
+        if (!localStorage.getItem('token')) {
+            window.location.href = 'index.html';
+        }
+
+        const API_BASE = 'http://localhost:4000/api';
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+        const tripSelect = document.getElementById('trip-select');
+        const searchNomeInput = document.getElementById('search-nome');
+
+        async function apiFetch(endpoint, options = {}) {
+            const headers = { 'Content-Type': 'application/json', ...options.headers };
+            if (token) headers.Authorization = `Bearer ${token}`;
+            const response = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
+
+            if (response.status === 401) {
+                alert('Token inválido. Faça login novamente.');
+                window.location.href = 'index.html';
+            }
+
+            if (!response.ok) throw new Error(`Erro: ${response.status}`);
+            return response.json();
+        }
+
+        async function loadDashboard() {
+            try {
+                document.getElementById('dashboard-tbody').innerHTML =
+                    `<tr><td colspan="6">Carregando dados...</td></tr>`;
+
+                const [tripsData, expensesData] = await Promise.all([
+                    apiFetch(`/trips`),
+                    apiFetch(`/expenses`)
+                ]);
+
+                const selectedTripId = tripSelect.value;
+                const searchName = searchNomeInput.value.toLowerCase();
+
+                let filteredTrips = tripsData.trips.filter(trip => {
+                    return (!selectedTripId || trip.id == selectedTripId);
+                });
+
+                filteredTrips = filteredTrips.filter(trip =>
+                    trip.name.toLowerCase().includes(searchName)
+                );
+
+                const filteredExpenses = expensesData.expenses.filter(e =>
+                    filteredTrips.some(t => t.id === e.trip_id)
+                );
+
+                // Total gasto no mês
+                const currentMonth = new Date().getMonth();
+                const totalGasto = filteredExpenses
+                    .filter(e => new Date(e.created_at).getMonth() === currentMonth)
+                    .reduce((sum, e) => sum + e.amount_brl, 0);
+
+                document.getElementById('total-gasto').textContent =
+                    `R$ ${totalGasto.toFixed(2)}`;
+
+                // Gasto por categoria
+                const categorias = {};
+                filteredExpenses.forEach(e => {
+                    const cat = e.name || 'Sem nome';
+                    categorias[cat] = (categorias[cat] || 0) + e.amount_brl;
+                });
+
+                const ul = document.getElementById('gasto-por-categoria');
+                ul.innerHTML = '';
+                for (const [cat, val] of Object.entries(categorias)) {
+                    const li = document.createElement('li');
+                    li.textContent = `${cat}: R$ ${val.toFixed(2)}`;
+                    ul.appendChild(li);
+                }
+
+                // Tabela
+                const tbody = document.getElementById('dashboard-tbody');
+
+                if (filteredTrips.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6">Nenhuma viagem encontrada</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = filteredTrips.map(trip => {
+                    const tripExpenses = filteredExpenses.filter(e => e.trip_id === trip.id);
+                    const estimatedCost = tripExpenses.reduce((sum, e) => sum + e.amount_brl, 0);
+
+                    return `
+                        <tr>
+                            <td>V-${trip.id}</td>
+                            <td>${user.email}</td>
+                            <td>${trip.name}</td>
+                            <td>${trip.start_date ? new Date(trip.start_date).toLocaleDateString() : 'N/A'}</td>
+                            <td>${trip.end_date ? new Date(trip.end_date).toLocaleDateString() : 'N/A'}</td>
+                            <td>R$ ${estimatedCost.toFixed(2)}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error(err);
+                alert('Erro ao carregar dashboard');
+            }
+        }
+
+        // Carrega dropdown de viagens
+        (async function init() {
+            const tripsData = await apiFetch(`/trips`);
+            tripSelect.innerHTML = `<option value="">Todas</option>`;
+            tripsData.trips.forEach(trip => {
+                const option = document.createElement('option');
+                option.value = trip.id;
+                option.textContent = trip.name;
+                tripSelect.appendChild(option);
+            });
+            loadDashboard();
+        })();
+
+        tripSelect.addEventListener('change', loadDashboard);
+        searchNomeInput.addEventListener('input', loadDashboard);
+    </script>
+</body>
+
+</html>

@@ -1,11 +1,14 @@
 const express = require("express");
-const db = require("../../app"); // ✅ Corrigido: ../../ sobe para a raiz
+const db = require("../../app");
 
 const router = express.Router();
 
-// GET /api/trips?userId=1 (lista viagens de um usuário)
+// =========================================
+// GET /api/trips?userId=1  -> Lista viagens
+// =========================================
 router.get("/", (req, res) => {
   const userId = req.query.userId;
+
   if (!userId) {
     return res.status(400).json({ error: "Parâmetro 'userId' é obrigatório!" });
   }
@@ -14,33 +17,61 @@ router.get("/", (req, res) => {
     const trips = db
       .prepare(
         `
-      SELECT id, name, created_at 
-      FROM trips 
-      WHERE user_id = ? 
-      ORDER BY created_at DESC
-    `
+        SELECT 
+          id, 
+          name, 
+          created_at,
+          start_date,
+          end_date
+        FROM trips
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+      `
       )
       .all(userId);
-    res.json({ trips, count: trips.length });
+
+    // Formata as datas: trata strings vazias como null
+    const tripsFormatted = trips.map((trip) => ({
+      ...trip,
+      start_date:
+        trip.start_date && trip.start_date.trim() !== ""
+          ? trip.start_date
+          : null,
+      end_date:
+        trip.end_date && trip.end_date.trim() !== "" ? trip.end_date : null,
+    }));
+
+    res.json({ trips: tripsFormatted, count: trips.length });
   } catch (error) {
     console.error("Erro ao listar trips:", error);
     res.status(500).json({ error: "Erro interno do servidor." });
   }
 });
 
-// POST /api/trips (cria uma nova viagem)
+// =========================================
+// POST /api/trips  -> Criar nova viagem
+// =========================================
 router.post("/", (req, res) => {
-  const { user_id, name } = req.body; // Adicione mais campos se precisar (ex: destination, date)
+  const { user_id, name, start_date, end_date } = req.body;
+
   if (!user_id || !name) {
     return res.status(400).json({ error: "user_id e name são obrigatórios!" });
   }
 
   try {
     const insert = db.prepare(`
-      INSERT INTO trips (user_id, name) 
-      VALUES (?, ?)
+      INSERT INTO trips (user_id, name, start_date, end_date)
+      VALUES (?, ?, ?, ?)
     `);
-    const result = insert.run(user_id, name);
+
+    // Garante que as datas sejam strings ou null
+    const result = insert.run(
+      user_id,
+      name,
+      start_date ? start_date : null,
+      end_date ? end_date : null
+    );
+
     res.status(201).json({
       id: result.lastInsertRowid,
       message: "Viagem criada com sucesso!",
@@ -50,7 +81,5 @@ router.post("/", (req, res) => {
     res.status(500).json({ error: "Erro interno do servidor." });
   }
 });
-
-// Adicione PUT/DELETE similar ao expenses se precisar...
 
 module.exports = router;

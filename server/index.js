@@ -140,16 +140,26 @@ app.post("/api/users/login", (req, res) => {
 
 // Rota: POST /api/trips (criar viagem)
 app.post("/api/trips", authMiddleware, (req, res) => {
-  const { name } = req.body;
+  console.log("REQ BODY:", req.body);
+
+  const { name, start_date, end_date } = req.body;
   const user_id = req.userId;
+
   if (!name || name.length < 3) {
     return res
       .status(400)
       .json({ error: "Nome da viagem obrigatório (mín. 3 chars)" });
   }
+
+  if (!start_date || !end_date) {
+    return res
+      .status(400)
+      .json({ error: "Datas de início e fim são obrigatórias" });
+  }
+
   db.run(
-    "INSERT INTO trips (user_id, name) VALUES (?, ?)",
-    [user_id, name],
+    "INSERT INTO trips (user_id, name, start_date, end_date) VALUES (?, ?, ?, ?)",
+    [user_id, name, start_date, end_date],
     function (err) {
       if (err) return res.status(500).json({ error: "Erro ao criar viagem" });
       res.status(201).json({ message: "Viagem criada!", id: this.lastID });
