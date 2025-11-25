@@ -1,5 +1,5 @@
 const express = require("express");
-const db = require("../../app");
+const db = require("../../app"); // seu db preparado (better-sqlite3)
 
 const router = express.Router();
 
@@ -22,7 +22,8 @@ router.get("/", (req, res) => {
           name, 
           created_at,
           start_date,
-          end_date
+          end_date,
+          estimated_cost
         FROM trips
         WHERE user_id = ?
         ORDER BY created_at DESC
@@ -30,7 +31,6 @@ router.get("/", (req, res) => {
       )
       .all(userId);
 
-    // Formata as datas: trata strings vazias como null
     const tripsFormatted = trips.map((trip) => ({
       ...trip,
       start_date:
@@ -39,6 +39,7 @@ router.get("/", (req, res) => {
           : null,
       end_date:
         trip.end_date && trip.end_date.trim() !== "" ? trip.end_date : null,
+      estimated_cost: trip.estimated_cost || 0,
     }));
 
     res.json({ trips: tripsFormatted, count: trips.length });
@@ -52,7 +53,7 @@ router.get("/", (req, res) => {
 // POST /api/trips  -> Criar nova viagem
 // =========================================
 router.post("/", (req, res) => {
-  const { user_id, name, start_date, end_date } = req.body;
+  const { user_id, name, start_date, end_date, estimated_cost = 0 } = req.body;
 
   if (!user_id || !name) {
     return res.status(400).json({ error: "user_id e name são obrigatórios!" });
@@ -60,16 +61,16 @@ router.post("/", (req, res) => {
 
   try {
     const insert = db.prepare(`
-      INSERT INTO trips (user_id, name, start_date, end_date)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO trips (user_id, name, start_date, end_date, estimated_cost)
+      VALUES (?, ?, ?, ?, ?)
     `);
 
-    // Garante que as datas sejam strings ou null
     const result = insert.run(
       user_id,
       name,
       start_date ? start_date : null,
-      end_date ? end_date : null
+      end_date ? end_date : null,
+      estimated_cost
     );
 
     res.status(201).json({

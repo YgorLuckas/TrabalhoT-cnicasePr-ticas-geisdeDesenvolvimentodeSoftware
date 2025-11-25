@@ -7,13 +7,13 @@ const fetch = require("node-fetch"); // Para API de moedas
 
 const app = express();
 const PORT = 4000;
-const JWT_SECRET = "seu_jwt_secret_aqui_mude_para_prod"; // Mude para algo seguro
+const JWT_SECRET = "seu_jwt_secret_aqui_mude_para_prod"; // Troque em produção
 const DB_PATH = "./data/database.sqlite";
 
 app.use(express.json());
-app.use(cors({ origin: ["http://localhost:5500", "http://127.0.0.1:5500"] })); // Para Live Server
+app.use(cors({ origin: ["http://localhost:5500", "http://127.0.0.1:5500"] }));
 
-// Middleware de Autenticação
+// Middleware de autenticação
 const authMiddleware = (req, res, next) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Token não fornecido" });
@@ -26,10 +26,9 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-// Inicialização do Banco de Dados
+// Inicializa o banco
 const db = new sqlite3.Database(DB_PATH);
 db.serialize(() => {
-  // Tabela Users
   db.run(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT DEFAULT 'Novo Usuário',
@@ -38,17 +37,16 @@ db.serialize(() => {
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
 
-  // Tabela Trips
   db.run(`CREATE TABLE IF NOT EXISTS trips (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     name TEXT NOT NULL,
     start_date TEXT,
     end_date TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
   )`);
 
-  // Tabela Expenses
   db.run(`CREATE TABLE IF NOT EXISTS expenses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
@@ -57,21 +55,22 @@ db.serialize(() => {
     amount REAL NOT NULL CHECK (amount > 0),
     currency TEXT DEFAULT 'BRL',
     amount_brl REAL NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY(trip_id) REFERENCES trips(id) ON DELETE SET NULL
   )`);
 
-  // Tabela Trip Participants
   db.run(`CREATE TABLE IF NOT EXISTS trip_participants (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     trip_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
     share REAL DEFAULT 1.0 CHECK (share > 0 AND share <= 1),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(trip_id, user_id)
+    UNIQUE(trip_id, user_id),
+    FOREIGN KEY(trip_id) REFERENCES trips(id) ON DELETE CASCADE,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
   )`);
 
-  // Tabela Travel Requests
-  // Tabela Travel Requests sem centro_custo
   db.run(`CREATE TABLE IF NOT EXISTS travel_requests (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
@@ -82,11 +81,12 @@ db.serialize(() => {
     motivo TEXT NOT NULL,
     observacoes TEXT,
     status TEXT DEFAULT 'pendente',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
   )`);
-}); // <-- FECHA db.serialize corretamente
+});
 
-// Função de Conversão de Moeda para BRL
+// Conversão de moeda para BRL
 async function convertToBRL(amount, currency) {
   if (currency === "BRL") return amount;
   try {
@@ -100,18 +100,20 @@ async function convertToBRL(amount, currency) {
     return amount * rate;
   } catch (err) {
     console.error("Erro na conversão de moeda:", err);
-    throw new Error("Falha na conversão de moeda. Usando BRL como fallback.");
+    return amount; // fallback
   }
 }
 
-// Rota: Register User
+// ================= ROTAS ================= //
+
+// Registro
 app.post("/api/users/register", async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password || password.length < 6) {
+  if (!email || !password || password.length < 6)
     return res
       .status(400)
-      .json({ error: "Email e senha obrigatórios (senha ≥6 chars)" });
-  }
+      .json({ error: "Email e senha obrigatórios (mín. 6 chars)" });
+
   try {
     const hashed = await bcrypt.hash(password, 10);
     db.run(
@@ -123,27 +125,27 @@ app.post("/api/users/register", async (req, res) => {
           expiresIn: "1h",
         });
         res.json({
-          message: "Conta criada com sucesso!",
+          message: "Conta criada!",
           token,
           user: { id: this.lastID, email },
         });
       }
     );
   } catch (err) {
-    res.status(500).json({ error: "Erro interno no servidor" });
+    res.status(500).json({ error: "Erro interno" });
   }
 });
 
-// Rota: Login User
+// Login
 app.post("/api/users/login", (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) {
+  if (!email || !password)
     return res.status(400).json({ error: "Email e senha obrigatórios" });
-  }
+
   db.get("SELECT * FROM users WHERE email = ?", [email], async (err, user) => {
-    if (err || !user || !(await bcrypt.compare(password, user.password))) {
+    if (err || !user || !(await bcrypt.compare(password, user.password)))
       return res.status(401).json({ error: "Email ou senha incorretos" });
-    }
+
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
       expiresIn: "1h",
     });
@@ -155,21 +157,13 @@ app.post("/api/users/login", (req, res) => {
   });
 });
 
-// Rota: POST /api/trips
+// Criar viagem
 app.post("/api/trips", authMiddleware, (req, res) => {
   const { name, start_date, end_date } = req.body;
   const user_id = req.userId;
 
-  if (!name || name.length < 3) {
-    return res
-      .status(400)
-      .json({ error: "Nome da viagem obrigatório (mín. 3 chars)" });
-  }
-  if (!start_date || !end_date) {
-    return res
-      .status(400)
-      .json({ error: "Datas de início e fim são obrigatórias" });
-  }
+  if (!name || name.length < 3 || !start_date || !end_date)
+    return res.status(400).json({ error: "Nome e datas obrigatórios" });
 
   db.run(
     "INSERT INTO trips (user_id, name, start_date, end_date) VALUES (?, ?, ?, ?)",
@@ -181,7 +175,7 @@ app.post("/api/trips", authMiddleware, (req, res) => {
   );
 });
 
-// Rota: GET /api/trips
+// Listar viagens
 app.get("/api/trips", authMiddleware, (req, res) => {
   const user_id = req.userId;
   db.all(
@@ -194,22 +188,18 @@ app.get("/api/trips", authMiddleware, (req, res) => {
   );
 });
 
-// Rota: POST /api/expenses
+// Criar despesa
 app.post("/api/expenses", authMiddleware, async (req, res) => {
   const { name, amount, trip_id, currency = "BRL" } = req.body;
   const user_id = req.userId;
-  if (!name || !amount || amount <= 0) {
+
+  if (!name || !amount || amount <= 0)
     return res.status(400).json({ error: "Nome e amount >0 obrigatórios" });
-  }
-  if (!["BRL", "USD", "EUR"].includes(currency)) {
-    return res
-      .status(400)
-      .json({ error: "Moeda inválida (use BRL, USD ou EUR)" });
-  }
+
   try {
     const amount_brl = await convertToBRL(amount, currency);
 
-    function insertExpense() {
+    const insertExpense = () => {
       db.run(
         "INSERT INTO expenses (user_id, trip_id, name, amount, currency, amount_brl) VALUES (?, ?, ?, ?, ?, ?)",
         [user_id, trip_id || null, name, amount, currency, amount_brl],
@@ -219,7 +209,7 @@ app.post("/api/expenses", authMiddleware, async (req, res) => {
           res.status(201).json({ message: "Despesa criada!", id: this.lastID });
         }
       );
-    }
+    };
 
     if (trip_id) {
       db.get(
@@ -227,21 +217,17 @@ app.post("/api/expenses", authMiddleware, async (req, res) => {
         [trip_id, user_id],
         (err, trip) => {
           if (err || !trip)
-            return res
-              .status(404)
-              .json({ error: "Viagem inválida ou não pertence a você" });
+            return res.status(404).json({ error: "Viagem inválida" });
           insertExpense();
         }
       );
-    } else {
-      insertExpense();
-    }
+    } else insertExpense();
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Rota: GET /api/expenses
+// Listar despesas
 app.get("/api/expenses", authMiddleware, (req, res) => {
   const user_id = req.userId;
   db.all(
@@ -255,8 +241,7 @@ app.get("/api/expenses", authMiddleware, (req, res) => {
   );
 });
 
-// Rota: POST /api/travel-requests
-// Rota: POST /api/travel-requests (sem centro_custo)
+// Criar solicitação de viagem
 app.post("/api/travel-requests", authMiddleware, (req, res) => {
   const {
     destino,
@@ -268,15 +253,11 @@ app.post("/api/travel-requests", authMiddleware, (req, res) => {
   } = req.body;
   const user_id = req.userId;
 
-  // Validação dos campos obrigatórios
-  if (!destino || !data_inicio || !data_fim || !custo_estimado || !motivo) {
+  if (!destino || !data_inicio || !data_fim || !custo_estimado || !motivo)
     return res.status(400).json({ error: "Campos obrigatórios faltando" });
-  }
 
-  // Inserindo no banco
   db.run(
-    `INSERT INTO travel_requests 
-      (user_id, destino, data_inicio, data_fim, custo_estimado, motivo, observacoes, status) 
+    `INSERT INTO travel_requests (user_id, destino, data_inicio, data_fim, custo_estimado, motivo, observacoes, status)
      VALUES (?, ?, ?, ?, ?, ?, ?, 'pendente')`,
     [
       user_id,
@@ -288,19 +269,17 @@ app.post("/api/travel-requests", authMiddleware, (req, res) => {
       observacoes,
     ],
     function (err) {
-      if (err) {
+      if (err)
         return res.status(500).json({ error: "Erro ao salvar solicitação" });
-      }
       res.status(201).json({ message: "Solicitação criada", id: this.lastID });
     }
   );
 });
 
-// Rota: GET /api/travel-requests
+// Listar solicitações
 app.get("/api/travel-requests", authMiddleware, (req, res) => {
   const { status } = req.query;
   const user_id = req.userId;
-
   let query = "SELECT * FROM travel_requests WHERE user_id = ?";
   const params = [user_id];
   if (status) {
@@ -316,39 +295,67 @@ app.get("/api/travel-requests", authMiddleware, (req, res) => {
   });
 });
 
-// Rota: PATCH /api/travel-requests/:id
+// Atualizar status de solicitação e criar viagem se aprovado
 app.patch("/api/travel-requests/:id", authMiddleware, (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
   const user_id = req.userId;
 
-  if (!["pendente", "aprovado", "rejeitado"].includes(status)) {
+  if (!["pendente", "aprovado", "rejeitado"].includes(status))
     return res.status(400).json({ error: "Status inválido" });
-  }
 
-  db.run(
-    "UPDATE travel_requests SET status = ? WHERE id = ? AND user_id = ?",
-    [status, id, user_id],
-    function (err) {
+  db.get(
+    "SELECT * FROM travel_requests WHERE id = ? AND user_id = ?",
+    [id, user_id],
+    (err, request) => {
       if (err)
-        return res.status(500).json({ error: "Erro ao atualizar solicitação" });
-      if (this.changes === 0)
+        return res.status(500).json({ error: "Erro ao buscar solicitação" });
+      if (!request)
         return res.status(404).json({ error: "Solicitação não encontrada" });
-      res.json({ message: "Solicitação atualizada" });
+
+      db.run(
+        "UPDATE travel_requests SET status = ? WHERE id = ? AND user_id = ?",
+        [status, id, user_id],
+        function (err) {
+          if (err)
+            return res
+              .status(500)
+              .json({ error: "Erro ao atualizar solicitação" });
+
+          if (status === "aprovado") {
+            db.run(
+              "INSERT INTO trips (user_id, name, start_date, end_date) VALUES (?, ?, ?, ?)",
+              [user_id, request.destino, request.data_inicio, request.data_fim],
+              function (err) {
+                if (err)
+                  return res
+                    .status(500)
+                    .json({ error: "Erro ao criar viagem" });
+                res.json({
+                  message: "Solicitação aprovada e viagem criada!",
+                  trip_id: this.lastID,
+                });
+              }
+            );
+          } else res.json({ message: `Solicitação ${status}!` });
+        }
+      );
     }
   );
 });
 
-// Rota: POST /api/trips/:id/participants
+// ================= Participantes e split ================= //
+
+// Adicionar participante
 app.post("/api/trips/:id/participants", authMiddleware, async (req, res) => {
   const trip_id = parseInt(req.params.id);
   const { email, share = 1.0 } = req.body;
   const owner_id = req.userId;
-  if (!email || isNaN(share) || share <= 0 || share > 1) {
+
+  if (!email || isNaN(share) || share <= 0 || share > 1)
     return res
       .status(400)
       .json({ error: "Email e share entre 0.01 e 1 obrigatórios" });
-  }
 
   db.get(
     "SELECT id FROM trips WHERE id = ? AND user_id = ?",
@@ -386,11 +393,10 @@ app.post("/api/trips/:id/participants", authMiddleware, async (req, res) => {
               "INSERT OR IGNORE INTO trip_participants (trip_id, user_id, share) VALUES (?, ?, ?)",
               [trip_id, u_id, share],
               function (err) {
-                if (err || this.changes === 0) {
+                if (err || this.changes === 0)
                   return res
                     .status(400)
                     .json({ error: "Participante já adicionado ou erro" });
-                }
                 res.json({
                   message: "Participante adicionado!",
                   user_id: u_id,
@@ -405,7 +411,7 @@ app.post("/api/trips/:id/participants", authMiddleware, async (req, res) => {
   );
 });
 
-// Rota: GET /api/trips/:id/participants
+// Listar participantes
 app.get("/api/trips/:id/participants", authMiddleware, (req, res) => {
   const trip_id = parseInt(req.params.id);
   const owner_id = req.userId;
@@ -422,21 +428,17 @@ app.get("/api/trips/:id/participants", authMiddleware, (req, res) => {
           .json({ error: "Viagem não encontrada ou acesso negado" });
 
       db.all(
-        `
-      SELECT tp.id, tp.share, tp.created_at, u.email 
-      FROM trip_participants tp 
-      JOIN users u ON tp.user_id = u.id 
-      WHERE tp.trip_id = ? 
-      ORDER BY tp.created_at ASC
-      `,
+        `SELECT tp.id, tp.share, tp.created_at, u.email 
+       FROM trip_participants tp 
+       JOIN users u ON tp.user_id = u.id 
+       WHERE tp.trip_id = ? 
+       ORDER BY tp.created_at ASC`,
         [trip_id],
         (err, participants) => {
-          if (err) {
-            console.error("Erro ao listar participantes:", err);
+          if (err)
             return res
               .status(500)
               .json({ error: "Erro ao listar participantes" });
-          }
           res.json({ participants });
         }
       );
@@ -444,7 +446,7 @@ app.get("/api/trips/:id/participants", authMiddleware, (req, res) => {
   );
 });
 
-// Rota: GET /api/trips/:id/split
+// Split de despesas
 app.get("/api/trips/:id/split", authMiddleware, (req, res) => {
   const trip_id = parseInt(req.params.id);
   const user_id = req.userId;
@@ -499,7 +501,7 @@ app.get("/api/trips/:id/split", authMiddleware, (req, res) => {
   );
 });
 
-// Inicia o Servidor
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
-});
+// ================= Inicia servidor ================= //
+app.listen(PORT, () =>
+  console.log(`🚀 Servidor rodando em http://localhost:${PORT}`)
+);
