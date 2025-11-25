@@ -43,17 +43,6 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="centro-custo">Centro de Custo</label>
-                        <select id="centro-custo" name="centro-custo" required>
-                            <option value="">Selecione...</option>
-                            <option value="vendas">Vendas</option>
-                            <option value="marketing">Marketing</option>
-                            <option value="desenvolvimento">Desenvolvimento</option>
-                            <option value="administrativo">Administrativo</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
                         <label for="data-inicio">Data de Início</label>
                         <input type="date" id="data-inicio" name="data-inicio" required>
                     </div>
@@ -89,32 +78,28 @@
     </main>
 
     <script>
-        // Checagem de autenticação (igual ao index.html)
         const token = localStorage.getItem('token');
         if (!token) {
             window.location.href = 'index.html';
         }
 
-        // Função para enviar solicitação pendente
         document.getElementById('solicitar-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const destino = document.getElementById('destino').value;
-            const centroCusto = document.getElementById('centro-custo').value;
             const dataInicio = document.getElementById('data-inicio').value;
             const dataFim = document.getElementById('data-fim').value;
             const custoEstimado = parseFloat(document.getElementById('custo-estimado').value);
             const motivo = document.getElementById('motivo').value;
             const observacoes = document.getElementById('observacoes').value;
 
-            // Validações básicas
             if (new Date(dataInicio) >= new Date(dataFim)) {
                 alert('Data de início deve ser antes da de fim.');
                 return;
             }
 
             try {
-                const response = await fetch('http://localhost:4000/api/travel-requests', {  // Ajuste o endpoint se necessário
+                const response = await fetch('http://localhost:4000/api/travel-requests', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -122,19 +107,18 @@
                     },
                     body: JSON.stringify({
                         destino,
-                        centro_custo: centroCusto,
                         data_inicio: dataInicio,
                         data_fim: dataFim,
                         custo_estimado: custoEstimado,
                         motivo,
                         observacoes,
-                        status: 'pendente'  // Sempre 'pendente' ao enviar
+                        status: 'pendente'
                     })
                 });
 
                 if (response.ok) {
                     alert('Solicitação enviada com sucesso! Ela aparecerá como pendente no Dashboard.');
-                    window.location.href = 'dashboard.html';  // Redireciona para o dashboard
+                    window.location.href = 'dashboard.html';
                 } else {
                     const error = await response.json();
                     alert('Erro ao enviar solicitação: ' + (error.error || 'Erro desconhecido'));

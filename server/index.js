@@ -71,11 +71,11 @@ db.serialize(() => {
   )`);
 
   // Tabela Travel Requests
+  // Tabela Travel Requests sem centro_custo
   db.run(`CREATE TABLE IF NOT EXISTS travel_requests (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     destino TEXT NOT NULL,
-    centro_custo TEXT NOT NULL,
     data_inicio TEXT NOT NULL,
     data_fim TEXT NOT NULL,
     custo_estimado REAL NOT NULL,
@@ -256,10 +256,10 @@ app.get("/api/expenses", authMiddleware, (req, res) => {
 });
 
 // Rota: POST /api/travel-requests
+// Rota: POST /api/travel-requests (sem centro_custo)
 app.post("/api/travel-requests", authMiddleware, (req, res) => {
   const {
     destino,
-    centro_custo,
     data_inicio,
     data_fim,
     custo_estimado,
@@ -268,23 +268,19 @@ app.post("/api/travel-requests", authMiddleware, (req, res) => {
   } = req.body;
   const user_id = req.userId;
 
-  if (
-    !destino ||
-    !centro_custo ||
-    !data_inicio ||
-    !data_fim ||
-    !custo_estimado ||
-    !motivo
-  ) {
+  // Validação dos campos obrigatórios
+  if (!destino || !data_inicio || !data_fim || !custo_estimado || !motivo) {
     return res.status(400).json({ error: "Campos obrigatórios faltando" });
   }
 
+  // Inserindo no banco
   db.run(
-    "INSERT INTO travel_requests (user_id, destino, centro_custo, data_inicio, data_fim, custo_estimado, motivo, observacoes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pendente')",
+    `INSERT INTO travel_requests 
+      (user_id, destino, data_inicio, data_fim, custo_estimado, motivo, observacoes, status) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'pendente')`,
     [
       user_id,
       destino,
-      centro_custo,
       data_inicio,
       data_fim,
       custo_estimado,
@@ -292,8 +288,9 @@ app.post("/api/travel-requests", authMiddleware, (req, res) => {
       observacoes,
     ],
     function (err) {
-      if (err)
+      if (err) {
         return res.status(500).json({ error: "Erro ao salvar solicitação" });
+      }
       res.status(201).json({ message: "Solicitação criada", id: this.lastID });
     }
   );

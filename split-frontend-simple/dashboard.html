@@ -6,6 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard de Viagens</title>
     <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* Espaçamento extra entre seções */
+        .table-container {
+            margin-top: 2rem;
+        }
+
+        /* Pequeno ajuste visual nos botões */
+        .btn {
+            margin-right: 0.5rem;
+        }
+    </style>
 </head>
 
 <body>
@@ -86,7 +97,6 @@
             </table>
         </section>
 
-        <!-- Nova seção para Solicitações Pendentes -->
         <section class="table-container">
             <h3>Solicitações Pendentes</h3>
             <table>
@@ -98,12 +108,12 @@
                         <th>Data Início</th>
                         <th>Data Fim</th>
                         <th>Custo Estimado</th>
-                        <th>Ações</th>
+                        <!-- "Ações" removido do cabeçalho -->
                     </tr>
                 </thead>
                 <tbody id="pendentes-tbody">
                     <tr>
-                        <td colspan="7">Carregando solicitações...</td>
+                        <td colspan="6">Carregando solicitações...</td>
                     </tr>
                 </tbody>
             </table>
@@ -161,7 +171,6 @@
                     filteredTrips.some(t => t.id === e.trip_id)
                 );
 
-                // Total gasto no mês
                 const currentMonth = new Date().getMonth();
                 const totalGasto = filteredExpenses
                     .filter(e => new Date(e.created_at).getMonth() === currentMonth)
@@ -170,7 +179,6 @@
                 document.getElementById('total-gasto').textContent =
                     `R$ ${totalGasto.toFixed(2)}`;
 
-                // Gasto por categoria
                 const categorias = {};
                 filteredExpenses.forEach(e => {
                     const cat = e.name || 'Sem nome';
@@ -185,7 +193,6 @@
                     ul.appendChild(li);
                 }
 
-                // Tabela de viagens ativas
                 const tbody = document.getElementById('dashboard-tbody');
 
                 if (filteredTrips.length === 0) {
@@ -215,18 +222,16 @@
             }
         }
 
-        // Nova função para carregar solicitações pendentes
         async function loadSolicitacoesPendentes() {
             try {
                 const data = await apiFetch(`/travel-requests?status=pendente`);
                 const pendentes = data.requests || [];
                 const tbody = document.getElementById('pendentes-tbody');
 
-                // Atualiza o contador
                 document.getElementById('aprovacoes-pendentes').textContent = pendentes.length;
 
                 if (pendentes.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="7">Nenhuma solicitação pendente</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="6">Nenhuma solicitação pendente</td></tr>`;
                     return;
                 }
 
@@ -251,16 +256,13 @@
             }
         }
 
-        // Função para aprovar solicitação (cria viagem ativa e remove pendente)
         async function aprovarSolicitacao(id, destino, dataInicio, dataFim) {
             try {
-                // Atualiza status para 'aprovado'
                 await apiFetch(`/travel-requests/${id}`, {
                     method: 'PATCH',
                     body: JSON.stringify({ status: 'aprovado' })
                 });
 
-                // Cria viagem ativa com os dados da solicitação
                 await apiFetch(`/trips`, {
                     method: 'POST',
                     body: JSON.stringify({
@@ -271,14 +273,13 @@
                 });
 
                 alert('Solicitação aprovada e viagem criada!');
-                loadSolicitacoesPendentes();  // Recarrega pendentes
-                loadDashboard();  // Recarrega viagens ativas
+                loadSolicitacoesPendentes();
+                loadDashboard();
             } catch (err) {
                 alert('Erro ao aprovar solicitação: ' + err.message);
             }
         }
 
-        // Função para rejeitar solicitação
         async function rejeitarSolicitacao(id) {
             try {
                 await apiFetch(`/travel-requests/${id}`, {
@@ -287,13 +288,12 @@
                 });
 
                 alert('Solicitação rejeitada!');
-                loadSolicitacoesPendentes();  // Recarrega pendentes
+                loadSolicitacoesPendentes();
             } catch (err) {
                 alert('Erro ao rejeitar solicitação: ' + err.message);
             }
         }
 
-        // Carrega dropdown de viagens e inicializa
         (async function init() {
             const tripsData = await apiFetch(`/trips`);
             tripSelect.innerHTML = `<option value="">Todas</option>`;
@@ -304,7 +304,7 @@
                 tripSelect.appendChild(option);
             });
             loadDashboard();
-            loadSolicitacoesPendentes();  // Carrega pendentes na inicialização
+            loadSolicitacoesPendentes();
         })();
 
         tripSelect.addEventListener('change', loadDashboard);
