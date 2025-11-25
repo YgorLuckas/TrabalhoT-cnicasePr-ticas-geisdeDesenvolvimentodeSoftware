@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Solicitar Viagem</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
+
 <body>
 
     <nav class="sidebar">
@@ -31,10 +33,10 @@
             <div class="form-header">
                 <h2>Nova Solicitação de Viagem</h2>
             </div>
-            
-            <form action="#" method="POST">
+
+            <form id="solicitar-form" action="#" method="POST">
                 <div class="form-grid">
-                    
+
                     <div class="form-group">
                         <label for="destino">Destino (Cidade, Estado/País)</label>
                         <input type="text" id="destino" name="destino" placeholder="Ex: São Paulo, SP" required>
@@ -79,7 +81,7 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="button" class="btn btn-secondary">Cancelar</button>
+                    <button type="button" class="btn btn-secondary" onclick="window.location.href='dashboard.html'">Cancelar</button>
                     <button type="submit" class="btn btn-success">Enviar Solicitação</button>
                 </div>
             </form>
@@ -87,10 +89,61 @@
     </main>
 
     <script>
-        // Checagem de autenticação
-        if (!localStorage.getItem('token')) {
+        // Checagem de autenticação (igual ao index.html)
+        const token = localStorage.getItem('token');
+        if (!token) {
             window.location.href = 'index.html';
         }
+
+        // Função para enviar solicitação pendente
+        document.getElementById('solicitar-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const destino = document.getElementById('destino').value;
+            const centroCusto = document.getElementById('centro-custo').value;
+            const dataInicio = document.getElementById('data-inicio').value;
+            const dataFim = document.getElementById('data-fim').value;
+            const custoEstimado = parseFloat(document.getElementById('custo-estimado').value);
+            const motivo = document.getElementById('motivo').value;
+            const observacoes = document.getElementById('observacoes').value;
+
+            // Validações básicas
+            if (new Date(dataInicio) >= new Date(dataFim)) {
+                alert('Data de início deve ser antes da de fim.');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:4000/api/travel-requests', {  // Ajuste o endpoint se necessário
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        destino,
+                        centro_custo: centroCusto,
+                        data_inicio: dataInicio,
+                        data_fim: dataFim,
+                        custo_estimado: custoEstimado,
+                        motivo,
+                        observacoes,
+                        status: 'pendente'  // Sempre 'pendente' ao enviar
+                    })
+                });
+
+                if (response.ok) {
+                    alert('Solicitação enviada com sucesso! Ela aparecerá como pendente no Dashboard.');
+                    window.location.href = 'dashboard.html';  // Redireciona para o dashboard
+                } else {
+                    const error = await response.json();
+                    alert('Erro ao enviar solicitação: ' + (error.error || 'Erro desconhecido'));
+                }
+            } catch (err) {
+                alert('Erro de conexão: ' + err.message);
+            }
+        });
     </script>
 </body>
+
 </html>

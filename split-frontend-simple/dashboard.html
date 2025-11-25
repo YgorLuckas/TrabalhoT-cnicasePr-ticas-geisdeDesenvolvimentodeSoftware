@@ -66,6 +66,7 @@
         </section>
 
         <section class="table-container">
+            <h3>Viagens Ativas</h3>
             <table>
                 <thead>
                     <tr>
@@ -80,6 +81,29 @@
                 <tbody id="dashboard-tbody">
                     <tr>
                         <td colspan="6">Carregando dados...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Nova seção para Solicitações Pendentes -->
+        <section class="table-container">
+            <h3>Solicitações Pendentes</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Destino</th>
+                        <th>Motivo</th>
+                        <th>Data Início</th>
+                        <th>Data Fim</th>
+                        <th>Custo Estimado</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="pendentes-tbody">
+                    <tr>
+                        <td colspan="7">Carregando solicitações...</td>
                     </tr>
                 </tbody>
             </table>
@@ -161,7 +185,7 @@
                     ul.appendChild(li);
                 }
 
-                // Tabela
+                // Tabela de viagens ativas
                 const tbody = document.getElementById('dashboard-tbody');
 
                 if (filteredTrips.length === 0) {
@@ -191,7 +215,85 @@
             }
         }
 
-        // Carrega dropdown de viagens
+        // Nova função para carregar solicitações pendentes
+        async function loadSolicitacoesPendentes() {
+            try {
+                const data = await apiFetch(`/travel-requests?status=pendente`);
+                const pendentes = data.requests || [];
+                const tbody = document.getElementById('pendentes-tbody');
+
+                // Atualiza o contador
+                document.getElementById('aprovacoes-pendentes').textContent = pendentes.length;
+
+                if (pendentes.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7">Nenhuma solicitação pendente</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = pendentes.map(req => `
+                    <tr>
+                        <td>S-${req.id}</td>
+                        <td>${req.destino}</td>
+                        <td>${req.motivo}</td>
+                        <td>${req.data_inicio ? new Date(req.data_inicio).toLocaleDateString() : 'N/A'}</td>
+                        <td>${req.data_fim ? new Date(req.data_fim).toLocaleDateString() : 'N/A'}</td>
+                        <td>R$ ${req.custo_estimado.toFixed(2)}</td>
+                        <td>
+                            <button class="btn btn-success" onclick="aprovarSolicitacao(${req.id}, '${req.destino}', '${req.data_inicio}', '${req.data_fim}')">Aprovar</button>
+                            <button class="btn btn-secondary" onclick="rejeitarSolicitacao(${req.id})">Rejeitar</button>
+                        </td>
+                    </tr>
+                `).join('');
+
+            } catch (err) {
+                console.error(err);
+                alert('Erro ao carregar solicitações pendentes');
+            }
+        }
+
+        // Função para aprovar solicitação (cria viagem ativa e remove pendente)
+        async function aprovarSolicitacao(id, destino, dataInicio, dataFim) {
+            try {
+                // Atualiza status para 'aprovado'
+                await apiFetch(`/travel-requests/${id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ status: 'aprovado' })
+                });
+
+                // Cria viagem ativa com os dados da solicitação
+                await apiFetch(`/trips`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: destino,
+                        start_date: dataInicio,
+                        end_date: dataFim
+                    })
+                });
+
+                alert('Solicitação aprovada e viagem criada!');
+                loadSolicitacoesPendentes();  // Recarrega pendentes
+                loadDashboard();  // Recarrega viagens ativas
+            } catch (err) {
+                alert('Erro ao aprovar solicitação: ' + err.message);
+            }
+        }
+
+        // Função para rejeitar solicitação
+        async function rejeitarSolicitacao(id) {
+            try {
+                await apiFetch(`/travel-requests/${id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ status: 'rejeitado' })
+                });
+
+                alert('Solicitação rejeitada!');
+                loadSolicitacoesPendentes();  // Recarrega pendentes
+            } catch (err) {
+                alert('Erro ao rejeitar solicitação: ' + err.message);
+            }
+        }
+
+        // Carrega dropdown de viagens e inicializa
         (async function init() {
             const tripsData = await apiFetch(`/trips`);
             tripSelect.innerHTML = `<option value="">Todas</option>`;
@@ -202,6 +304,7 @@
                 tripSelect.appendChild(option);
             });
             loadDashboard();
+            loadSolicitacoesPendentes();  // Carrega pendentes na inicialização
         })();
 
         tripSelect.addEventListener('change', loadDashboard);
