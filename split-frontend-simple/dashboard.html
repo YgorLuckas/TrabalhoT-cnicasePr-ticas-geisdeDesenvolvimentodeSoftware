@@ -90,11 +90,12 @@
                         <th>Data Início</th>
                         <th>Data Fim</th>
                         <th>Custo Estimado</th>
+                        <th>Ações</th> <!-- Nova coluna para ações -->
                     </tr>
                 </thead>
                 <tbody id="dashboard-tbody">
                     <tr>
-                        <td colspan="6">Carregando dados...</td>
+                        <td colspan="7">Carregando dados...</td> <!-- Atualizado para 7 colunas -->
                     </tr>
                 </tbody>
             </table>
@@ -111,12 +112,12 @@
                         <th>Data Início</th>
                         <th>Data Fim</th>
                         <th>Custo Estimado</th>
-                        <!-- "Ações" removido do cabeçalho -->
+                        <th>Ações</th> <!-- Mantido para consistência -->
                     </tr>
                 </thead>
                 <tbody id="pendentes-tbody">
                     <tr>
-                        <td colspan="6">Carregando solicitações...</td>
+                        <td colspan="7">Carregando solicitações...</td> <!-- Atualizado para 7 colunas -->
                     </tr>
                 </tbody>
             </table>
@@ -152,10 +153,10 @@
         async function loadDashboard() {
             try {
                 document.getElementById('dashboard-tbody').innerHTML =
-                    `<tr><td colspan="6">Carregando dados...</td></tr>`;
+                    `<tr><td colspan="7">Carregando dados...</td></tr>`; // Atualizado para 7 colunas
 
                 const [tripsData, expensesData] = await Promise.all([
-                    apiFetch(`/trips`),
+                    apiFetch(`/trips?userId=${user.id}`),  // Adicionado userId
                     apiFetch(`/expenses`)
                 ]);
 
@@ -199,7 +200,7 @@
                 const tbody = document.getElementById('dashboard-tbody');
 
                 if (filteredTrips.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="6">Nenhuma viagem encontrada</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="7">Nenhuma viagem encontrada</td></tr>`; // Atualizado para 7 colunas
                     return;
                 }
 
@@ -215,6 +216,9 @@
                             <td>${trip.start_date ? new Date(trip.start_date).toLocaleDateString() : 'N/A'}</td>
                             <td>${trip.end_date ? new Date(trip.end_date).toLocaleDateString() : 'N/A'}</td>
                             <td>R$ ${estimatedCost.toFixed(2)}</td>
+                            <td>
+                                <button class="btn btn-danger" onclick="removerViagem(${trip.id})">Remover</button>
+                            </td>
                         </tr>
                     `;
                 }).join('');
@@ -234,7 +238,7 @@
                 document.getElementById('aprovacoes-pendentes').textContent = pendentes.length;
 
                 if (pendentes.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="6">Nenhuma solicitação pendente</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="7">Nenhuma solicitação pendente</td></tr>`; // Atualizado para 7 colunas
                     return;
                 }
 
@@ -269,6 +273,7 @@
                 await apiFetch(`/trips`, {
                     method: 'POST',
                     body: JSON.stringify({
+                        user_id: user.id,  // Adicionado user_id obrigatório
                         name: destino,
                         start_date: dataInicio,
                         end_date: dataFim
@@ -297,8 +302,24 @@
             }
         }
 
+        // Nova função para remover viagem
+        async function removerViagem(id) {
+            if (!confirm('Tem certeza de que deseja remover esta viagem? Esta ação não pode ser desfeita.')) {
+                return;
+            }
+            try {
+                await apiFetch(`/trips/${id}?userId=${user.id}`, {  // Adicionado userId na query
+                    method: 'DELETE'
+                });
+                alert('Viagem removida com sucesso!');
+                loadDashboard(); // Recarrega o dashboard para atualizar a lista
+            } catch (err) {
+                alert('Erro ao remover viagem: ' + err.message);
+            }
+        }
+
         (async function init() {
-            const tripsData = await apiFetch(`/trips`);
+            const tripsData = await apiFetch(`/trips?userId=${user.id}`);  // Adicionado userId
             tripSelect.innerHTML = `<option value="">Todas</option>`;
             tripsData.trips.forEach(trip => {
                 const option = document.createElement('option');

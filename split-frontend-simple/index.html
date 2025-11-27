@@ -7,102 +7,270 @@
   <meta name="description" content="App para split de despesas em viagens com conversão de moedas - UnexViagem">
   <title>UnexViagem - Gerencie Despesas de Viagens</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css"> <!-- CSS compartilhado -->
+  <link rel="stylesheet" href="css/styles.css">
   <style>
-    /* Ajustes específicos para corrigir os problemas mencionados e melhorias solicitadas */
+    /* Estilos originais (mantidos/ajustados minimamente) */
+
     #main-header {
       text-align: center;
       margin-bottom: 40px;
-      /* Aumentado para melhor espaçamento */
+      color: #495057;
     }
 
     #main-header h1 {
       margin-bottom: 15px;
-      /* Ajustado */
       color: #495057;
-      /* Cor mais suave para títulos */
     }
 
     #main-header p {
       font-size: 1.1rem;
-      /* Ligeiramente maior para legibilidade */
       color: #6c757d;
-      /* Cinza neutro */
     }
 
-    /* Centralizar o botão de sair (removido o "Voltar ao Login") */
+    /* Centralizar o botão de sair */
     .logout-buttons {
       display: flex;
       justify-content: center;
       gap: 20px;
-      /* Aumentado para mais espaçamento */
       margin-top: 30px;
-      /* Aumentado */
     }
 
     /* Ajustar a seção "Veja as Despesas" para não parecer pequena */
     .stat-card h3 {
       font-size: 1.3rem;
-      /* Aumentado */
       color: #495057;
-      /* Cor mais suave */
       margin-bottom: 15px;
-      /* Aumentado */
     }
 
     .stat-card p {
       font-size: 1.1rem;
-      /* Ajustado */
       line-height: 1.6;
-      /* Melhor legibilidade */
       color: #6c757d;
     }
 
-    /* Ajustar cores dos botões para tons mais modernos e neutros */
+    /* Estilos do Botão Secundário (logout/default) */
     .btn-secondary {
       background-color: #6c757d;
-      /* Cinza neutro */
       color: white;
       padding: 12px 25px;
-      /* Aumentado para melhor toque */
+      border: none;
+      border-radius: 8px;
+      /* Adicionado para consistência */
     }
 
     .btn-secondary:hover {
       background-color: #5a6268;
-      /* Hover mais escuro */
     }
 
+    /* Estilos do Botão de Logout */
     .logout-btn {
       background-color: #0056b3;
-      /* Azul escuro em vez de vermelho */
       color: white;
       padding: 12px 25px;
-      /* Aumentado */
+      border: none;
+      border-radius: 8px;
+      /* Adicionado para consistência */
     }
 
     .logout-btn:hover {
       background-color: #004085;
-      /* Hover mais escuro */
     }
 
     /* Melhorar espaçamento geral */
     .stat-card {
       margin-bottom: 20px;
-      /* Aumentado */
       padding: 30px;
-      /* Aumentado */
+      background-color: #ffffff;
+      /* Garante fundo branco nas cards */
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
 
     .form-group {
       margin-bottom: 15px;
-      /* Aumentado */
+    }
+
+    /* ================================================= */
+    /* ESTILOS EXCLUSIVOS PARA AS TELAS DE LOGIN/REGISTER */
+    /* ================================================= */
+
+    /* Garante que o fundo do corpo seja cinza claro SOMENTE quando não logado */
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: 'Roboto', sans-serif;
+    }
+
+    /* Aplica o fundo cinza claro apenas quando a página de login/register está ativa */
+    #login-page.active,
+    #register-page.active {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #f0f2f5;
+      /* Fundo cinza claro */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      box-sizing: border-box;
+      z-index: 1000;
+      /* Garante que fique por cima de outros elementos se houver */
+    }
+
+    /* Garante que o main-content não tenha margem quando na tela de login */
+    #login-page.active~.main-content,
+    #register-page.active~.main-content {
+      margin-left: 0;
+    }
+
+    .main-content {
+      margin-left: 0;
+      padding-top: 20px;
+    }
+
+    /* 1. Estilo do Contêiner do Formulário (o "cartão" branco) */
+    #login-page .form-container,
+    #register-page .form-container {
+      background-color: #ffffff;
+      padding: 45px;
+      /* Um pouco mais de padding */
+      border: 1px solid #dbdbdb;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      width: 100%;
+      max-width: 450px;
+      /* **Aumentado para desktop** */
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    #login-page .form-container h1,
+    #register-page .form-container h1 {
+      font-weight: 500;
+      color: #007bff;
+      /* **Usando o azul primário do site** */
+      margin-bottom: 20px;
+      font-size: 2.5rem;
+      /* **Aumentado para desktop** */
+      letter-spacing: -1px;
+    }
+
+    #login-page .form-container p,
+    #register-page .form-container p {
+      color: #8e8e8e;
+      margin-bottom: 35px;
+      /* Mais espaço abaixo da descrição */
+      font-size: 1rem;
+      /* Ligeiramente maior */
+    }
+
+    /* 2. Estilo dos Inputs e Labels (ocultando labels e ajustando inputs) */
+    #login-page .form-group,
+    #register-page .form-group {
+      margin-bottom: 18px;
+      /* Mais espaço entre inputs */
+      text-align: left;
+    }
+
+    #login-page .form-group label,
+    #register-page .form-group label {
+      display: none;
+    }
+
+    #login-page .form-container input,
+    #register-page .form-container input {
+      width: 100%;
+      padding: 14px 12px;
+      /* Maior padding nos inputs */
+      border: 1px solid #ced4da;
+      /* Borda mais neutra e padrão */
+      border-radius: 5px;
+      /* Levemente mais arredondado */
+      box-sizing: border-box;
+      background-color: #ffffff;
+      /* Fundo branco nos inputs */
+      font-size: 1rem;
+      color: #262626;
+    }
+
+    #login-page .form-container input::placeholder,
+    #register-page .form-container input::placeholder {
+      color: #adb5bd;
+      /* Placeholder mais visível */
+    }
+
+    #login-page .form-container input:focus,
+    #register-page .form-container input:focus {
+      border-color: #007bff;
+      /* Borda azul ao focar */
+      box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+      /* Sombra de foco azul */
+      outline: none;
+    }
+
+    /* 3. Estilo do Botão Primário (Login/Criar Conta) - Sobrescrito apenas para o login */
+    #login-page .btn-primary,
+    #register-page .btn-primary {
+      width: 100%;
+      padding: 14px;
+      /* Botão maior */
+      border: none;
+      border-radius: 5px;
+      background-color: #007bff;
+      /* **Azul primário do site** */
+      color: white;
+      font-weight: 600;
+      font-size: 1.1rem;
+      /* Fonte maior no botão */
+      cursor: pointer;
+      transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+      margin-top: 25px;
+      /* Mais espaço */
+      box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
+      /* Sombra sutil para o botão */
+    }
+
+    #login-page .btn-primary:hover,
+    #register-page .btn-primary:hover {
+      background-color: #0056b3;
+      /* Azul mais escuro no hover */
+      box-shadow: 0 6px 15px rgba(0, 123, 255, 0.3);
+    }
+
+    /* 4. Link de Alternância (Criar Conta / Fazer Login) */
+    #login-page .link-switch,
+    #register-page .link-switch {
+      margin-top: 30px;
+      /* Mais espaço */
+      font-size: 1rem;
+      color: #6c757d;
+      /* Cor mais neutra */
+    }
+
+    #login-page .link-switch a,
+    #register-page .link-switch a {
+      color: #007bff;
+      /* **Azul primário do site** */
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+
+    #login-page .link-switch a:hover,
+    #register-page .link-switch a:hover {
+      text-decoration: underline;
+      color: #0056b3;
     }
   </style>
 </head>
 
 <body>
-  <!-- Sidebar Global (Ocultada no login/register) -->
-  <nav class="sidebar" id="sidebar" style="display: none;"> <!-- Inicialmente oculta -->
+  <nav class="sidebar" id="sidebar" style="display: none;">
     <div class="sidebar-header">
       <h2>UnexViagem</h2>
     </div>
@@ -116,53 +284,50 @@
     </ul>
   </nav>
 
-  <!-- Conteúdo Principal (SPA Interno) -->
   <main class="main-content" id="main-content">
-    <header id="main-header" style="display: none;"> <!-- Oculto no login/register -->
+    <header id="main-header" style="display: none;">
       <h1>🚀 UnexViagem</h1>
       <p>Gerencie despesas de viagens de forma simples e inteligente</p>
     </header>
 
-    <!-- Página de Login -->
     <div id="login-page" class="page active">
       <div class="form-container">
-        <h1>Login</h1>
-        <p>Entre para gerenciar suas viagens.</p>
+        <h1>✈️ UnexViagem</h1>
+        <p>Entre na sua conta e comece a gerenciar suas viagens.</p>
         <form onsubmit="event.preventDefault(); handleLogin();">
           <div class="form-group">
             <label for="login-email">Email</label>
-            <input id="login-email" type="email" placeholder="Digite seu email" required />
+            <input id="login-email" type="email" placeholder="nome@empresa.com" required />
           </div>
           <div class="form-group">
             <label for="login-password">Senha</label>
-            <input id="login-password" type="password" placeholder="Digite sua senha" required />
+            <input id="login-password" type="password" placeholder="••••••••" required />
           </div>
-          <button type="submit" class="btn btn-primary">Entrar 👤</button>
+          <button type="submit" class="btn btn-primary">Entrar na Conta 🔑</button>
         </form>
-        <p style="text-align: center; margin-top: 25px; color: #6c757d;"> <!-- Aumentado margin-top -->
-          Não tem conta? <a href="#" onclick="showPage('register-page')" style="color: #007bff; text-decoration: none; font-weight: 500;">Criar Conta</a>
+        <p class="link-switch">
+          Não tem conta? <a href="#" onclick="showPage('register-page')">Criar Conta</a>
         </p>
       </div>
     </div>
 
-    <!-- Página de Register -->
     <div id="register-page" class="page">
       <div class="form-container">
-        <h1>Criar Conta</h1>
+        <h1>➕ Nova Conta</h1>
         <p>Crie sua conta gratuita na UnexViagem.</p>
         <form onsubmit="event.preventDefault(); handleRegister();">
           <div class="form-group">
             <label for="register-email">Email</label>
-            <input id="register-email" type="email" placeholder="Digite seu email" required />
+            <input id="register-email" type="email" placeholder="nome@empresa.com" required />
           </div>
           <div class="form-group">
             <label for="register-password">Senha (mín. 6 caracteres)</label>
             <input id="register-password" type="password" placeholder="Crie uma senha segura" required />
           </div>
-          <button type="submit" class="btn btn-primary">Criar Conta ➕</button>
+          <button type="submit" class="btn btn-primary">Criar Conta Agora ✨</button>
         </form>
-        <p style="text-align: center; margin-top: 25px; color: #6c757d;"> <!-- Aumentado margin-top -->
-          Já tem conta? <a href="#" onclick="showPage('login-page')" style="color: #007bff; text-decoration: none; font-weight: 500;">Fazer Login</a>
+        <p class="link-switch">
+          Já tem conta? <a href="#" onclick="showPage('login-page')">Fazer Login</a>
         </p>
       </div>
     </div>
