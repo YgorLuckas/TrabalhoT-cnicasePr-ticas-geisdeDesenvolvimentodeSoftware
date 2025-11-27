@@ -83,4 +83,44 @@ router.post("/", (req, res) => {
   }
 });
 
+// =========================================
+// DELETE /api/trips/:id  -> Remover viagem
+// =========================================
+router.delete("/:id", (req, res) => {
+  const { id } = req.params;
+  const userId = req.query.userId; // Ou use req.user.id se houver middleware de auth que adiciona req.user
+
+  if (!userId) {
+    return res.status(400).json({ error: "Parâmetro 'userId' é obrigatório!" });
+  }
+
+  try {
+    // Primeiro, verifica se a viagem existe e pertence ao usuário
+    const trip = db
+      .prepare("SELECT id FROM trips WHERE id = ? AND user_id = ?")
+      .get(id, userId);
+
+    if (!trip) {
+      return res
+        .status(404)
+        .json({ error: "Viagem não encontrada ou não pertence ao usuário." });
+    }
+
+    // Remove a viagem
+    const deleteStmt = db.prepare(
+      "DELETE FROM trips WHERE id = ? AND user_id = ?"
+    );
+    const result = deleteStmt.run(id, userId);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: "Viagem não encontrada." });
+    }
+
+    res.json({ message: "Viagem removida com sucesso!" });
+  } catch (error) {
+    console.error("Erro ao remover trip:", error);
+    res.status(500).json({ error: "Erro interno do servidor." });
+  }
+});
+
 module.exports = router;

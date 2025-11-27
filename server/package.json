@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
-    "bcryptjs": "^3.0.2",
+    "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.4.1",
     "cors": "^2.8.5",
     "dotenv": "^16.0.0",

@@ -3,7 +3,7 @@ const sqlite3 = require("sqlite3").verbose();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
-const fetch = require("node-fetch"); // Para API de moedas
+const fetch = require("node-fetch");
 
 const app = express();
 const PORT = 4000;
@@ -100,7 +100,7 @@ async function convertToBRL(amount, currency) {
     return amount * rate;
   } catch (err) {
     console.error("Erro na conversão de moeda:", err);
-    return amount; // fallback
+    return amount;
   }
 }
 
@@ -162,7 +162,7 @@ app.post("/api/trips", authMiddleware, (req, res) => {
   const { name, start_date, end_date } = req.body;
   const user_id = req.userId;
 
-  if (!name || name.length < 3 || !start_date || !end_date)
+  if (!name || !start_date || !end_date)
     return res.status(400).json({ error: "Nome e datas obrigatórios" });
 
   db.run(
@@ -184,6 +184,23 @@ app.get("/api/trips", authMiddleware, (req, res) => {
     (err, trips) => {
       if (err) return res.status(500).json({ error: "Erro ao listar viagens" });
       res.json({ trips, count: trips.length });
+    }
+  );
+});
+
+// ====================== NOVA ROTA DELETE ====================== //
+app.delete("/api/trips/:id", authMiddleware, (req, res) => {
+  const trip_id = parseInt(req.params.id);
+  const user_id = req.userId;
+
+  db.run(
+    "DELETE FROM trips WHERE id = ? AND user_id = ?",
+    [trip_id, user_id],
+    function (err) {
+      if (err) return res.status(500).json({ error: "Erro ao remover viagem" });
+      if (this.changes === 0)
+        return res.status(404).json({ error: "Viagem não encontrada" });
+      res.json({ message: "Viagem removida com sucesso!" });
     }
   );
 });
